@@ -4,6 +4,7 @@ import com.appshop.back_shop.domain.User;
 import com.appshop.back_shop.dto.request.UserCreationRequest;
 import com.appshop.back_shop.dto.request.UserUpdateRequest;
 import com.appshop.back_shop.dto.response.ApiResponse;
+import com.appshop.back_shop.dto.response.UserResponse;
 import com.appshop.back_shop.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,11 +31,11 @@ public class UserController {
         return userService.getUsers();
     }
     @GetMapping("/{userId}")
-    User getUserById(@PathVariable("userId") Long userId){
+    UserResponse getUserById(@PathVariable("userId") Long userId){
         return userService.getUserById(userId);
     }
     @PutMapping("/{userId}")
-    public User updateUser(@PathVariable Long userId, @RequestBody UserUpdateRequest request) {
+    public UserResponse updateUser(@PathVariable Long userId, @RequestBody UserUpdateRequest request) {
         return userService.updateUser(userId, request);
     }
     @DeleteMapping("/{userId}")

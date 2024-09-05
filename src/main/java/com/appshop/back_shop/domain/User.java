@@ -17,17 +17,29 @@ public class User {
 
     @Column(nullable = false, unique = true)
     private String username;
+
     @Column(nullable = false)
     private String password;
+
     @Column(nullable = false, unique = true)
     private String email;
+
     private String firstname;
     private String lastname;
+
     @Column(nullable = false)
-    private String role = "USER";
+    private String role = "USER"; // ADMIN, USER
+
+    @Column
+    private String phoneNumber;
+
+    @Column
+    private String address;
+
     @Column(name = "created_at", updatable = false, nullable = false)
     @CreationTimestamp
     private Timestamp createdAt;
+
     @Column(name = "updated_at")
     @UpdateTimestamp
     private Timestamp updatedAt;

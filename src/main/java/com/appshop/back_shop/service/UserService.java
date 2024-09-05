@@ -3,10 +3,14 @@ package com.appshop.back_shop.service;
 import com.appshop.back_shop.domain.User;
 import com.appshop.back_shop.dto.request.UserCreationRequest;
 import com.appshop.back_shop.dto.request.UserUpdateRequest;
+import com.appshop.back_shop.dto.response.UserResponse;
 import com.appshop.back_shop.exception.AppException;
 import com.appshop.back_shop.exception.ErrorCode;
+import com.appshop.back_shop.mapper.UserMapper;
 import com.appshop.back_shop.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,19 +19,20 @@ import java.util.List;
 public class UserService {
     @Autowired
     private UserRepository userRepository;
-
+    @Autowired
+    private UserMapper userMapper;
 
     public User createUser(UserCreationRequest request){
-        User user = new User();
 
         if (userRepository.existsByUsername(request.getUsername()))
             throw new AppException(ErrorCode.USER_EXISTED);
 
-        user.setUsername(request.getUsername());
-        user.setPassword(request.getPassword());
-        user.setEmail(request.getEmail());
-        user.setFirstname(request.getFirstname());
-        user.setLastname(request.getLastname());
+        User user = userMapper.toUser(request);
+
+        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+
         return userRepository.save(user);
     }
 
@@ -35,18 +40,15 @@ public class UserService {
         return userRepository.findAll();
     }
 
-    public User getUserById(Long userId){
-        return userRepository.findById(userId).orElseThrow(() -> new RuntimeException("user not found"));
+    public UserResponse getUserById(Long userId){
+        return userMapper.toUserResponse(userRepository.findById(userId).orElseThrow(() -> new RuntimeException("user not found")));
     }
 
-    public User updateUser(Long userId, UserUpdateRequest request){
-        User user = getUserById(userId);
-        user.setPassword(request.getPassword());
-        user.setEmail(request.getEmail());
-        user.setFirstname(request.getFirstname());
-        user.setLastname(request.getLastname());
+    public UserResponse updateUser(Long userId, UserUpdateRequest request){
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+        userMapper.updateUser(user, request);
 
-        return userRepository.save(user);
+        return userMapper.toUserResponse(userRepository.save(user));
     }
 
     public void deleteUser(Long userId){
