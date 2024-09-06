@@ -1,11 +1,11 @@
 package com.appshop.back_shop.domain;
-
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
@@ -13,7 +13,7 @@ import java.sql.Timestamp;
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long userId;
 
     @Column(nullable = false, unique = true)
     private String username;
@@ -24,23 +24,24 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    private String firstname;
-    private String lastname;
+    @Column(nullable = false)
+    private String firstName;
 
     @Column(nullable = false)
-    private String role = "USER"; // ADMIN, USER
+    private String lastName;
 
-    @Column
+    @Column(nullable = false, unique = true)
     private String phoneNumber;
 
-    @Column
-    private String address;
+    @Column(nullable = false)
+    private String role ="USER"; // 'admin' or 'user'
 
-    @Column(name = "created_at", updatable = false, nullable = false)
+    private String profileImgUrl;
+
     @CreationTimestamp
-    private Timestamp createdAt;
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
     @UpdateTimestamp
-    private Timestamp updatedAt;
+    private LocalDateTime updatedAt;
 }
