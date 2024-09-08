@@ -32,6 +32,4 @@ public class ShippingAddress {
 
     @Column(nullable = false)
     private LocalDateTime updatedAt;
-
-    // Getters and setters
 }

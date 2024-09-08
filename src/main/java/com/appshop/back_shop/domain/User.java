@@ -11,15 +11,16 @@ import java.util.Set;
 
 @Entity
 @Table(name = "users")
-@Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Data
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    Long userId;
+    @Column(name = "userId")
+    Long id;
 
     @Column(nullable = false, unique = true)
     String username;

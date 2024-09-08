@@ -61,7 +61,7 @@ public class AuthenticationService {
 
 
         var accessToken = generateToken(user);
-        var refreshToken = generateRefreshToken(user.getUserId());
+        var refreshToken = generateRefreshToken(user.getId());
 
         return AuthenticationResponse.builder()
                 .accessToken(accessToken)
@@ -85,12 +85,12 @@ public class AuthenticationService {
         storedRefreshToken.setUsed(true);
         refreshTokenRepository.save(storedRefreshToken);
 
-        User user = userRepository.findById(storedRefreshToken.getUser().getUserId())
+        User user = userRepository.findById(storedRefreshToken.getUser().getId())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
 
         String newAccessToken = generateToken(user);
-        String newRefreshToken = generateRefreshToken(user.getUserId());
+        String newRefreshToken = generateRefreshToken(user.getId());
 
         return RefreshTokenResponse.builder()
                 .accessToken(newAccessToken)

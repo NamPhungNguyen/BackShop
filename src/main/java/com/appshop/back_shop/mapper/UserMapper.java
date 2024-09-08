@@ -4,6 +4,7 @@ import com.appshop.back_shop.dto.request.UserCreationRequest;
 import com.appshop.back_shop.dto.request.UserUpdateRequest;
 import com.appshop.back_shop.dto.response.UserResponse;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
