@@ -1,47 +1,55 @@
 package com.appshop.back_shop.domain;
+
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
+import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Entity
 @Table(name = "users")
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long userId;
+    Long userId;
 
     @Column(nullable = false, unique = true)
-    private String username;
+    String username;
 
     @Column(nullable = false)
-    private String password;
+    String password;
 
     @Column(nullable = false, unique = true)
-    private String email;
+    String email;
 
     @Column(nullable = false)
-    private String firstName;
+    String firstName;
 
     @Column(nullable = false)
-    private String lastName;
+    String lastName;
 
     @Column(nullable = false, unique = true)
-    private String phoneNumber;
+    String phoneNumber;
 
-    @Column(nullable = false)
-    private String role ="USER"; // 'admin' or 'user'
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "role")
+    Set<String> roles;
 
-    private String profileImgUrl;
+    String profileImgUrl;
 
     @CreationTimestamp
     @Column(updatable = false)
-    private LocalDateTime createdAt;
+    LocalDateTime createdAt;
 
     @UpdateTimestamp
-    private LocalDateTime updatedAt;
+    LocalDateTime updatedAt;
 }

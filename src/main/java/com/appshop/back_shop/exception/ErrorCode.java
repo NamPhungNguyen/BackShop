@@ -6,8 +6,10 @@ public enum ErrorCode {
     USERNAME_INVALID(1003, "Username must be at least 3 characters"),
     PASSWORD_INVALID(1004, "Password must be at least 8 characters"),
     USER_NOT_EXISTED(1002, "user not existed"),
-
     UNAUTHENTICATED(1005, "Unauthenticated"),
+    INVALID_REFRESH_TOKEN(1006, "Invalid Refresh Token"),
+    REFRESH_TOKEN_EXPIRED(1006, "Refresh Token Expired"),
+
 
     ;
 
