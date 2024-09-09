@@ -58,8 +58,6 @@ public class AuthenticationService {
         if (!authenticated) {
             throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
-
-
         var accessToken = generateToken(user);
         var refreshToken = generateRefreshToken(user.getId());
 
