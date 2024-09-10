@@ -1,9 +1,6 @@
 package com.appshop.back_shop.controller;
 
-import com.appshop.back_shop.dto.request.AuthenticationRequest;
-import com.appshop.back_shop.dto.request.IntrospectRequest;
-import com.appshop.back_shop.dto.request.RefreshTokenRequest;
-import com.appshop.back_shop.dto.request.UserCreationRequest;
+import com.appshop.back_shop.dto.request.*;
 import com.appshop.back_shop.dto.response.*;
 import com.appshop.back_shop.service.AuthenticationService;
 import com.appshop.back_shop.service.UserService;
@@ -51,9 +48,9 @@ public class AuthenticationController {
     }
 
     @PostMapping("/refresh-token")
-    public ApiResponse<RefreshTokenResponse> refreshToken(@RequestBody RefreshTokenRequest request){
+    public ApiResponse<AuthenticationResponse> refreshToken(@RequestBody RefreshTokenRequest request) throws ParseException, JOSEException {
         var result = authenticationService.refreshToken(request);
-        return ApiResponse.<RefreshTokenResponse>builder()
+        return ApiResponse.<AuthenticationResponse>builder()
                 .result(result)
                 .code(200)
                 .build();
@@ -68,4 +65,14 @@ public class AuthenticationController {
                 .code(200)
                 .build();
     }
+
+    @PostMapping("/logout")
+    public ApiResponse<Void> logout(@RequestBody LogoutRequest request) throws ParseException, JOSEException {
+        authenticationService.logout(request);
+        return ApiResponse.<Void>builder()
+                .code(200)
+                .build();
+    }
+
+
 }
