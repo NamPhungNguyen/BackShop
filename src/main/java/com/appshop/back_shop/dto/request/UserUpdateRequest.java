@@ -15,5 +15,4 @@ public class UserUpdateRequest {
     String lastName;
     String email;
     String phoneNumber;
-    String profileImg;
 }

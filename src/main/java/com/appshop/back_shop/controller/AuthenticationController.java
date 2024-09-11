@@ -24,25 +24,27 @@ import java.text.ParseException;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AuthenticationController {
-
     AuthenticationService authenticationService;
     UserService userService;
 
-    @PostMapping("/login")
+    @PostMapping("/log-in")
     @Operation(summary = "Đăng nhập")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Nhập vào tên người dùng và mật khẩu để đăng nhập")
-    public ApiResponse<AuthenticationResponse> authenticate(@RequestBody AuthenticationRequest request) {
-        var result = authenticationService.authenticate(request);
+    public ApiResponse<AuthenticationResponse> logIn(@RequestBody AuthenticationRequest request) {
+        var result = authenticationService.login(request);
         return ApiResponse.<AuthenticationResponse>builder()
                 .result(result)
+                .message("Login successful")
                 .code(200)
                 .build();
     }
 
-    @PostMapping("/signup")
-    public ApiResponse<UserResponse> createUser(@RequestBody @Valid UserCreationRequest request){
+    @PostMapping("/sign-up")
+    @Operation(summary = "Đăng ký")
+    public ApiResponse<UserResponse> signUp(@RequestBody @Valid UserCreationRequest request){
         return ApiResponse.<UserResponse>builder()
-                .result(userService.createUser(request))
+                .result(authenticationService.createUser(request))
+                .message("Registration successful")
                 .code(200)
                 .build();
     }
@@ -66,13 +68,13 @@ public class AuthenticationController {
                 .build();
     }
 
-    @PostMapping("/logout")
+    @PostMapping("/log-out")
+    @Operation(summary = "Đăng xuất")
     public ApiResponse<Void> logout(@RequestBody LogoutRequest request) throws ParseException, JOSEException {
         authenticationService.logout(request);
         return ApiResponse.<Void>builder()
+                .message("Logout successful")
                 .code(200)
                 .build();
     }
-
-
 }

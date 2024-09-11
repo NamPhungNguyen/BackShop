@@ -18,8 +18,7 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
-
-    private final String[] PUBLIC_ENDPOINTS = {"auth/refresh-token", "auth/login", "auth/logout","auth/signup","auth/introspect"};
+    private final String[] PUBLIC_ENDPOINTS = {"auth/refresh-token", "auth/log-in", "auth/log-out","auth/sign-up","auth/introspect"};
     private final String[] SWAGGER_ENDPOINTS = {
             "/v3/api-docs/**",
             "/swagger-ui/**",
