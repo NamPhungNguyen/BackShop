@@ -41,8 +41,6 @@ public class AuthenticationService {
     UserRepository userRepository;
     InvalidatedTokenRepository invalidatedTokenRepository;
     UserMapper userMapper;
-    UserService userService;
-
     @NonFinal
     @Value("${jwt.signerKey}")
     protected String SIGNER_KEY;

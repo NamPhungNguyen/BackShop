@@ -1,23 +1,29 @@
 package com.appshop.back_shop.domain;
 
 import jakarta.persistence.*;
+import lombok.*;
+import lombok.experimental.FieldDefaults;
 
 @Entity
 @Table(name = "cart_items")
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class CartItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long cartItemId;
+    Long cartItemId;
 
     @ManyToOne
     @JoinColumn(name = "cart_id", nullable = false)
-    private Cart cart;
+    Cart cart;
 
     @ManyToOne
     @JoinColumn(name = "product_id", nullable = false)
-    private Product product;
+    Product product;
 
     @Column(nullable = false)
-    private int quantity;
-
+    int quantity;
 }

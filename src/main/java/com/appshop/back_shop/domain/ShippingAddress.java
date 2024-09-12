@@ -1,35 +1,47 @@
 package com.appshop.back_shop.domain;
 
 import jakarta.persistence.*;
+import lombok.*;
+import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "shipping_addresses")
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class ShippingAddress {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long addressId;
+    Long addressId;
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    User user;
 
     @Column(nullable = false)
-    private String addressLine1;
+    String addressLine1;
 
-    private String addressLine2;
-
-    @Column(nullable = false)
-    private String city;
+    String addressLine2;
 
     @Column(nullable = false)
-    private String state;
-    @Column(nullable = false)
-    private String country;
+    String city;
 
     @Column(nullable = false)
-    private LocalDateTime createdAt;
+    String state;
 
     @Column(nullable = false)
-    private LocalDateTime updatedAt;
+    String country;
+
+    @CreationTimestamp
+    @Column(nullable = false)
+    LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    LocalDateTime updatedAt;
 }

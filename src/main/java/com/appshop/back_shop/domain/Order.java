@@ -1,31 +1,37 @@
 package com.appshop.back_shop.domain;
 
 import jakarta.persistence.*;
+import lombok.*;
+import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "orders")
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long orderId;
+    Long orderId;
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    User user;
 
     @Column(nullable = false)
-    private String status; // 'pending', 'completed', 'cancelled'
+    String status; // 'pending', 'completed', 'cancelled'
 
     @Column(nullable = false)
-    private BigDecimal totalAmount;
+    BigDecimal totalAmount;
 
     @Column(nullable = false)
-    private LocalDateTime createdAt;
+    LocalDateTime createdAt;
 
     @Column(nullable = false)
-    private LocalDateTime updatedAt;
-
+    LocalDateTime updatedAt;
 }

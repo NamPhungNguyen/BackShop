@@ -1,32 +1,43 @@
 package com.appshop.back_shop.domain;
 
 import jakarta.persistence.*;
+import lombok.*;
+import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "payments")
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class Payment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long paymentId;
+    Long paymentId;
 
     @ManyToOne
     @JoinColumn(name = "order_id", nullable = false)
-    private Order order;
+    Order order;
 
     @Column(nullable = false)
-    private BigDecimal amount;
+    BigDecimal amount;
 
     @Column(nullable = false)
-    private String paymentMethod; // 'credit_card', 'paypal', 'bank_transfer'
+    String paymentMethod; // 'credit_card', 'paypal', 'bank_transfer'
 
     @Column(nullable = false)
-    private String paymentStatus; // 'pending', 'completed', 'failed'
+    String paymentStatus; // 'pending', 'completed', 'failed'
 
+    @CreationTimestamp
     @Column(nullable = false)
-    private LocalDateTime createdAt;
+    LocalDateTime createdAt;
 
-    @Column(nullable = false)
-    private LocalDateTime updatedAt;
+    @UpdateTimestamp
+    LocalDateTime updatedAt;
 }

@@ -24,10 +24,6 @@ import java.util.List;
 public class UserService {
     UserRepository userRepository;
     UserMapper userMapper;
-
-
-
-
     @PreAuthorize("hasRole('ADMIN')")
     public List<User> getUsers() {
         return userRepository.findAll();

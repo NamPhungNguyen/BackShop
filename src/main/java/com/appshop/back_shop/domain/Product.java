@@ -1,43 +1,52 @@
 package com.appshop.back_shop.domain;
 
 import jakarta.persistence.*;
+import lombok.*;
+import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "products")
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long productId;
+    Long productId;
 
     @Column(nullable = false)
-    private String name;
+    String name;
 
     @Column(length = 500)
-    private String description;
+    String description;
 
     @Column(nullable = false)
-    private BigDecimal price;
+    BigDecimal price;
 
     @Column(nullable = false)
-    private int stock;
+    int stock;
 
     @Column(nullable = false)
-    private String size;
+    String size;
 
     @Column(nullable = false)
-    private String color;
+    String color;
 
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = false)
-    private Category category;
+    Category category;
 
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
+    @CreationTimestamp
+    @Column(updatable = false)
+    LocalDateTime createdAt;
 
-    @Column(nullable = false)
-    private LocalDateTime updatedAt;
-
+    @UpdateTimestamp
+    LocalDateTime updatedAt;
 }

@@ -16,9 +16,12 @@ public enum ErrorCode {
     INVALID_REFRESH_TOKEN(1006, "Invalid Refresh Token", HttpStatus.UNAUTHORIZED),
     REFRESH_TOKEN_EXPIRED(1007, "Refresh Token Expired", HttpStatus.UNAUTHORIZED),
     INVALID_KEY(1008, "Uncategorized error", HttpStatus.BAD_REQUEST),
-    UNAUTHORIZED(1009, "You do dot have permission", HttpStatus.FORBIDDEN),
+    UNAUTHORIZED(1009, "You do not have permission", HttpStatus.FORBIDDEN),
     ACCOUNT_NOT_EXITS(1010, "Incorrect username or password", HttpStatus.UNAUTHORIZED),
     USER_NOT_FOUND(1011, "User not found", HttpStatus.NOT_FOUND),
+    CATEGORY_EXISTED(1012, "Category existed", HttpStatus.BAD_REQUEST),
+    NAME_CATEGORY_INVALID(1013, "Name category is required", HttpStatus.BAD_REQUEST),
+    CATEGORY_NOT_EXISTED(1012, "Category not existed", HttpStatus.NOT_FOUND),
 
 
     ;
