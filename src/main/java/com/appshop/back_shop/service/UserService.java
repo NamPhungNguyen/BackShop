@@ -1,7 +1,7 @@
 package com.appshop.back_shop.service;
 
 import com.appshop.back_shop.domain.User;
-import com.appshop.back_shop.dto.request.UserUpdateRequest;
+import com.appshop.back_shop.dto.request.users.UserUpdateRequest;
 import com.appshop.back_shop.dto.response.UserResponse;
 import com.appshop.back_shop.exception.AppException;
 import com.appshop.back_shop.exception.ErrorCode;
@@ -11,7 +11,6 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;

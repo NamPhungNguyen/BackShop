@@ -65,4 +65,13 @@ public class CategoryController {
                 .message("Category deleted successful")
                 .build();
     }
+
+    @GetMapping("/get-category-by-name/{categoryName}")
+    ApiResponse<Category> getCategoryName(@PathVariable("categoryName") String name){
+        return ApiResponse.<Category>builder()
+                .code(200)
+                .result(categoryService.getCategoryByName(name))
+                .message("Get the name category successfully")
+                .build();
+    }
 }

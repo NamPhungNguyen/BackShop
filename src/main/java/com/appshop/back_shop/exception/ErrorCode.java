@@ -21,7 +21,9 @@ public enum ErrorCode {
     USER_NOT_FOUND(1011, "User not found", HttpStatus.NOT_FOUND),
     CATEGORY_EXISTED(1012, "Category existed", HttpStatus.BAD_REQUEST),
     NAME_CATEGORY_INVALID(1013, "Name category is required", HttpStatus.BAD_REQUEST),
-    CATEGORY_NOT_EXISTED(1012, "Category not existed", HttpStatus.NOT_FOUND),
+    CATEGORY_NOT_EXISTED(1014, "Category not existed", HttpStatus.NOT_FOUND),
+    PRODUCT_EXISTED(1015, "Product existed", HttpStatus.BAD_REQUEST),
+
 
 
     ;

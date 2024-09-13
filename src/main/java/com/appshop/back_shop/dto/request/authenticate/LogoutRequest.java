@@ -1,4 +1,4 @@
-package com.appshop.back_shop.dto.request;
+package com.appshop.back_shop.dto.request.authenticate;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

@@ -1,6 +1,6 @@
 package com.appshop.back_shop.config;
 
-import com.appshop.back_shop.dto.request.IntrospectRequest;
+import com.appshop.back_shop.dto.request.authenticate.IntrospectRequest;
 import com.appshop.back_shop.service.AuthenticationService;
 import com.nimbusds.jose.JOSEException;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,5 +1,4 @@
-package com.appshop.back_shop.dto.request;
-
+package com.appshop.back_shop.dto.request.authenticate;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -9,7 +8,6 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class AuthenticationRequest {
-    String username;
-    String password;
+public class RefreshTokenRequest {
+    String token;
 }

@@ -42,6 +42,12 @@ public class CategoryService {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
+    public Category getCategoryByName(String categoryName) {
+        return categoryRepository.findCategoryByName(categoryName)
+                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_EXISTED));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
     public Category updateCategory(CategoryRequest request, Long id){
         Category category = categoryRepository.findCategoryByCategoryId(id)
                 .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_EXISTED));

@@ -1,7 +1,7 @@
 package com.appshop.back_shop.controller;
 
 import com.appshop.back_shop.domain.User;
-import com.appshop.back_shop.dto.request.UserUpdateRequest;
+import com.appshop.back_shop.dto.request.users.UserUpdateRequest;
 import com.appshop.back_shop.dto.response.ApiResponse;
 import com.appshop.back_shop.dto.response.UserResponse;
 import com.appshop.back_shop.service.UserService;

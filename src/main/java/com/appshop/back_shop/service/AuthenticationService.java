@@ -2,7 +2,11 @@ package com.appshop.back_shop.service;
 
 import com.appshop.back_shop.domain.InValidatedToken;
 import com.appshop.back_shop.domain.User;
-import com.appshop.back_shop.dto.request.*;
+import com.appshop.back_shop.dto.request.authenticate.AuthenticationRequest;
+import com.appshop.back_shop.dto.request.authenticate.IntrospectRequest;
+import com.appshop.back_shop.dto.request.authenticate.LogoutRequest;
+import com.appshop.back_shop.dto.request.authenticate.RefreshTokenRequest;
+import com.appshop.back_shop.dto.request.users.UserCreationRequest;
 import com.appshop.back_shop.dto.response.AuthenticationResponse;
 import com.appshop.back_shop.dto.response.IntrospectResponse;
 import com.appshop.back_shop.dto.response.UserResponse;
