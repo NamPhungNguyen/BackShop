@@ -56,5 +56,6 @@ public class Product {
     LocalDateTime createdAt;
 
     @UpdateTimestamp
+    @Column(nullable = false)
     LocalDateTime updatedAt;
 }
