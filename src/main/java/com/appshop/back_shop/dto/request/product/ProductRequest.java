@@ -1,6 +1,5 @@
 package com.appshop.back_shop.dto.request.product;
 
-import com.appshop.back_shop.domain.Category;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 

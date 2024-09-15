@@ -30,7 +30,6 @@ public class CategoryService {
         return categoryRepository.save(category);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
     public List<Category> getListCategories(){
         return categoryRepository.findAll();
     }

@@ -47,7 +47,6 @@ public class ProductService {
         return response;
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
     public List<ProductResponse> getListProduct(){
         return productRepository.findAll().stream()
                 .map(productMapper::toProductResponse).toList();

@@ -24,8 +24,11 @@ public enum ErrorCode {
     CATEGORY_NOT_EXISTED(1014, "Category not existed", HttpStatus.NOT_FOUND),
     PRODUCT_EXISTED(1015, "Product existed", HttpStatus.BAD_REQUEST),
     PRODUCT_NOT_EXISTED(1016, "Product not existed", HttpStatus.NOT_FOUND),
-    CART_ALREADY_EXISTS(1016, "Cart already existed", HttpStatus.BAD_REQUEST),
-
+    CART_ALREADY_EXISTS(1017, "Cart already existed", HttpStatus.BAD_REQUEST),
+    CART_NOT_EXISTS(1018, "Cart not existed", HttpStatus.NOT_FOUND),
+    CART_ITEM_NOT_FOUND(1019, "Cart item not found", HttpStatus.NOT_FOUND),
+    USER_NOT_AUTHORIZED(1020, "user not authorized", HttpStatus.UNAUTHORIZED),
+    CART_EMPTY(1021, "cart is empty", HttpStatus.NO_CONTENT),
 
     ;
 
