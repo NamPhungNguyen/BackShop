@@ -28,6 +28,9 @@ public class CartService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
+        if (cartRepository.existsByUser(user))
+            throw new AppException(ErrorCode.CART_ALREADY_EXISTS);
+
         Cart cart = new Cart();
 
         cart.setUser(user);
@@ -35,6 +38,9 @@ public class CartService {
 
         Cart savedCart = cartRepository.save(cart);
 
-        return cartMapper.toResponse(cart);
+        CartResponse cartResponse = cartMapper.toResponse(savedCart);
+        cartResponse.setUserId(cart.getUser().getId());
+
+        return cartResponse;
     }
 }

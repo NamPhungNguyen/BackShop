@@ -24,7 +24,7 @@ public enum ErrorCode {
     CATEGORY_NOT_EXISTED(1014, "Category not existed", HttpStatus.NOT_FOUND),
     PRODUCT_EXISTED(1015, "Product existed", HttpStatus.BAD_REQUEST),
     PRODUCT_NOT_EXISTED(1016, "Product not existed", HttpStatus.NOT_FOUND),
-
+    CART_ALREADY_EXISTS(1016, "Cart already existed", HttpStatus.BAD_REQUEST),
 
 
     ;
