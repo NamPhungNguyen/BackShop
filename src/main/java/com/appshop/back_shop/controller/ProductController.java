@@ -2,15 +2,21 @@ package com.appshop.back_shop.controller;
 
 import com.appshop.back_shop.domain.Product;
 import com.appshop.back_shop.dto.request.product.ProductRequest;
+import com.appshop.back_shop.dto.request.product.ProductStockRequest;
 import com.appshop.back_shop.dto.response.ApiResponse;
+import com.appshop.back_shop.dto.response.Product.ProductLowStockResponse;
 import com.appshop.back_shop.dto.response.Product.ProductResponse;
+import com.appshop.back_shop.dto.response.Product.ProductStockResponse;
+import com.appshop.back_shop.dto.response.Product.ProductWithCategoryResponse;
 import com.appshop.back_shop.service.ProductService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -74,4 +80,37 @@ public class ProductController {
                 .code(200)
                 .build();
     }
+
+    @PutMapping("/{productId}/stock")
+    public ApiResponse<ProductStockResponse> updateStock(@PathVariable Long productId, @RequestBody ProductStockRequest request){
+        return ApiResponse.<ProductStockResponse>builder()
+                .code(200)
+                .message("Stock updated successfully")
+                .result(productService.updateStock(productId, request))
+                .build();
+    }
+
+    @GetMapping("/low-stock")
+    public ApiResponse<List<ProductLowStockResponse>> fetchLowStockProducts(@RequestParam(defaultValue = "10") int threshold){
+        return ApiResponse.<List<ProductLowStockResponse>>builder()
+                .code(200)
+                .message("Low stock products retrieved successfully")
+                .result(productService.fetchAllLowProducts(threshold))
+                .build();
+    }
+
+    @GetMapping("/with-categories")
+    public List<ProductWithCategoryResponse> getProductsWithCategories(@RequestParam Long categoryId) {
+        return productService.fetchProductsWithCategories(categoryId);
+    }
+
+    @GetMapping("/by-price-range")
+    public ApiResponse<List<ProductResponse>> fetchProductsByPriceRange(@RequestParam BigDecimal minPrice, @RequestParam BigDecimal maxPrice){
+        return ApiResponse.<List<ProductResponse>>builder()
+                .result(productService.fetchProductsByPriceRange(minPrice, maxPrice))
+                .code(200)
+                .message("Products fetched successfully by price range")
+                .build();
+    }
+
 }

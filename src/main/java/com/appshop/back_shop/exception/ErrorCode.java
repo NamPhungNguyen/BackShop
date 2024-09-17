@@ -29,6 +29,7 @@ public enum ErrorCode {
     CART_ITEM_NOT_FOUND(1019, "Cart item not found", HttpStatus.NOT_FOUND),
     USER_NOT_AUTHORIZED(1020, "user not authorized", HttpStatus.UNAUTHORIZED),
     CART_EMPTY(1021, "cart is empty", HttpStatus.NO_CONTENT),
+    STOCK_NOT_VALID(1021, "stock not valid", HttpStatus.BAD_REQUEST),
 
     ;
 
