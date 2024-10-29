@@ -32,10 +32,7 @@ public class User {
     String email;
 
     @Column(nullable = false)
-    String firstName;
-
-    @Column(nullable = false)
-    String lastName;
+    String fullName;
 
     @Column(nullable = false, unique = true)
     String phoneNumber;
@@ -46,6 +43,8 @@ public class User {
     Set<String> roles;
 
     String profileImgUrl;
+
+    Boolean isLocationEnable = false;
 
     @CreationTimestamp
     @Column(updatable = false)

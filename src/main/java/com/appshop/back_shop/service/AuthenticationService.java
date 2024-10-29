@@ -77,21 +77,32 @@ public class AuthenticationService {
     }
 
     public UserResponse createUser(UserCreationRequest request) {
-
-        if (userRepository.existsByUsername(request.getUsername()))
+        // Check if the username already exists
+        if (userRepository.existsByUsername(request.getUsername())) {
             throw new AppException(ErrorCode.USER_EXISTED);
+        }
 
-        User user = userMapper.toUser(request);
+        User user = new User();
+        user.setUsername(request.getUsername());
 
+        // Encode the password
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
+        // Set other properties
+        user.setEmail(request.getEmail());
+        user.setFullName(request.getFullName());
+        user.setPhoneNumber(request.getPhoneNumber());
+
+        // Set roles
         HashSet<String> roles = new HashSet<>();
         roles.add(Role.USER.name());
         user.setRoles(roles);
 
+        // Save the user and convert to UserResponse
         return userMapper.toUserResponse(userRepository.save(user));
     }
+
 
 
     public IntrospectResponse introspect(IntrospectRequest request) throws ParseException, JOSEException {

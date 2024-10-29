@@ -1,4 +1,5 @@
 package com.appshop.back_shop.dto.request.users;
+
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -7,10 +8,6 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UserUpdateRequest {
-    String username;
-    String firstName;
-    String lastName;
+public class UpdateProfileEmailRequest {
     String email;
-    String phoneNumber;
 }

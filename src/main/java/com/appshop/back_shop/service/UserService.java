@@ -1,7 +1,7 @@
 package com.appshop.back_shop.service;
 
 import com.appshop.back_shop.domain.User;
-import com.appshop.back_shop.dto.request.users.UserUpdateRequest;
+import com.appshop.back_shop.dto.request.users.*;
 import com.appshop.back_shop.dto.response.UserResponse;
 import com.appshop.back_shop.exception.AppException;
 import com.appshop.back_shop.exception.ErrorCode;
@@ -13,7 +13,10 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
 
 @Service
@@ -23,6 +26,13 @@ import java.util.List;
 public class UserService {
     UserRepository userRepository;
     UserMapper userMapper;
+
+    public Long getUserIdFromToken() {
+        JwtAuthenticationToken authenticationToken = (JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
+        Jwt jwt = (Jwt) authenticationToken.getCredentials();
+        return jwt.getClaim("userId");
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     public List<User> getUsers() {
         return userRepository.findAll();
@@ -37,7 +47,15 @@ public class UserService {
         var context = SecurityContextHolder.getContext();
         String name = context.getAuthentication().getName();
         User user = userRepository.findByUsername(name).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
-        return userMapper.toUserResponse(user);
+        return UserResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .username(user.getUsername())
+                .fullName(user.getFullName())
+                .profileImg(user.getProfileImgUrl())
+                .phoneNumber(user.getPhoneNumber())
+                .roles(user.getRoles())
+                .build();
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -51,5 +69,121 @@ public class UserService {
     @PreAuthorize("hasRole('ADMIN')")
     public void deleteUser(Long userId) {
         userRepository.deleteById(userId);
+    }
+
+    public void updateLocationPreference(boolean isLocationEnable) {
+        var context = SecurityContextHolder.getContext();
+        String name = context.getAuthentication().getName();
+
+        User user = userRepository.findByUsername(name).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        user.setIsLocationEnable(isLocationEnable);
+        userRepository.save(user);
+    }
+
+    public UserResponse updateProfileUser(UpdateProfileRequest request) {
+        Long userId = getUserIdFromToken();
+        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        if (request.getFullName() != null) {
+            user.setFullName(request.getFullName());
+        }
+        if (request.getProfileImg() != null) {
+            user.setProfileImgUrl(request.getProfileImg());
+        }
+        if (request.getPhoneNumber() != null) {
+            user.setPhoneNumber(request.getPhoneNumber());
+        }
+
+        userRepository.save(user);
+        return UserResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .username(user.getUsername())
+                .fullName(user.getFullName())
+                .profileImg(user.getProfileImgUrl())
+                .phoneNumber(user.getPhoneNumber())
+                .roles(user.getRoles())
+                .build();
+    }
+
+    public UserResponse updateProfileNameUser(UpdateProfileNameRequest request) {
+        Long userId = getUserIdFromToken();
+        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        if (request.getFullName() != null) {
+            user.setFullName(request.getFullName());
+        }
+
+        userRepository.save(user);
+        return UserResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .username(user.getUsername())
+                .fullName(user.getFullName())
+                .profileImg(user.getProfileImgUrl())
+                .phoneNumber(user.getPhoneNumber())
+                .roles(user.getRoles())
+                .build();
+    }
+
+    public UserResponse updateProfileImgUser(UpdateProfileImgRequest request) {
+        Long userId = getUserIdFromToken();
+        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        if (request.getProfileImg() != null) {
+            user.setProfileImgUrl(request.getProfileImg());
+        }
+
+        userRepository.save(user);
+        return UserResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .username(user.getUsername())
+                .fullName(user.getFullName())
+                .profileImg(user.getProfileImgUrl())
+                .phoneNumber(user.getPhoneNumber())
+                .roles(user.getRoles())
+                .build();
+    }
+
+    public UserResponse updateProfilePhoneUser(UpdateProfilePhoneRequest request) {
+        Long userId = getUserIdFromToken();
+        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        if (request.getPhoneNumber() != null) {
+            user.setPhoneNumber(request.getPhoneNumber());
+        }
+
+        userRepository.save(user);
+        return UserResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .username(user.getUsername())
+                .fullName(user.getFullName())
+                .profileImg(user.getProfileImgUrl())
+                .phoneNumber(user.getPhoneNumber())
+                .roles(user.getRoles())
+                .build();
+    }
+
+    public UserResponse updateProfileEmailUser(UpdateProfileEmailRequest request) {
+        Long userId = getUserIdFromToken();
+        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        if (request.getEmail() != null) {
+            user.setEmail(request.getEmail());
+        }
+
+        userRepository.save(user);
+        return UserResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .username(user.getUsername())
+                .fullName(user.getFullName())
+                .profileImg(user.getProfileImgUrl())
+                .phoneNumber(user.getPhoneNumber())
+                .roles(user.getRoles())
+                .build();
     }
 }

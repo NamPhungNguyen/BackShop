@@ -5,7 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
 @Data
 @Builder
 @NoArgsConstructor
@@ -16,7 +15,6 @@ public class UserCreationRequest {
     @Size(min = 8, message = "PASSWORD_INVALID")
     private String password;
     private String email;
-    private String firstName;
-    private String lastName;
+    private String fullName;
     private String phoneNumber;
 }

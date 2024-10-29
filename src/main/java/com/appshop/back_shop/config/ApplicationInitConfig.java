@@ -32,8 +32,7 @@ public class ApplicationInitConfig {
                         .username("admin")
                         .password(passwordEncoder.encode("admin"))
                         .email("admin")
-                        .lastName("admin")
-                        .firstName("admin")
+                        .fullName("admin")
                         .phoneNumber("019283901")
                         .roles(roles)
                         .build();
