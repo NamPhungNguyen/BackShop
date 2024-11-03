@@ -13,4 +13,6 @@ public class CartItemResponse {
     Long cartItemId;
     Long productId;
     int quantity;
+    String size;
+    String color;
 }

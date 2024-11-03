@@ -15,4 +15,6 @@ public interface CartItemRepository extends JpaRepository<CartItem, Long> {
     Optional<CartItem> findByCartAndProduct_ProductId(Cart cart, Long productId);
     List<CartItem> findByCart(Cart cart);
     Optional<CartItem> findByCart_CartIdAndCartItemId(Long cartId, Long itemId);
+    Optional<CartItem> findByCartAndProductAndSizeAndColor(Cart cart, Product product, String size, String color);
+
 }

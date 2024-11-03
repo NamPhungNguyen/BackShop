@@ -12,4 +12,6 @@ import lombok.experimental.FieldDefaults;
 public class CartItemRequest {
     Long productId;
     int quantity;
+    String size;
+    String color;
 }

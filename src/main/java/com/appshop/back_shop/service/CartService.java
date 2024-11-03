@@ -41,21 +41,33 @@ public class CartService {
     ProductRepository productRepository;
     CartItemRepository cartItemRepository;
 
-
-    public Long getUserIdFromToken(){
+    public Long getUserIdFromToken() {
         JwtAuthenticationToken authenticationToken = (JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
         Jwt jwt = (Jwt) authenticationToken.getCredentials();
         return jwt.getClaim("userId");
     }
 
-    public CartResponse createCart(){
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public CartResponse getCartForUser() {
+        User user = userRepository.findById(getUserIdFromToken()).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        Cart cart = cartRepository.findByUser(user).orElse(null);
+
+        if (cart == null) {
+            return null;
+        }
+
+        CartResponse cartResponse = cartMapper.toResponse(cart);
+        cartResponse.setUserId(user.getId());
+        return cartResponse;
+    }
+
+    public CartResponse createCart() {
         Long userId = getUserIdFromToken();
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        if (cartRepository.existsByUser(user))
-            throw new AppException(ErrorCode.CART_ALREADY_EXISTS);
+        if (cartRepository.existsByUser(user)) throw new AppException(ErrorCode.CART_ALREADY_EXISTS);
 
         Cart cart = new Cart();
 
@@ -71,54 +83,62 @@ public class CartService {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    public void deleteCart(Long cartId){
+    public void deleteCart(Long cartId) {
         cartRepository.deleteById(cartId);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional// ti note cai nay lai
-    public void deleteCartByUserId(Long userId){
+    public void deleteCartByUserId(Long userId) {
         cartRepository.deleteByUser_Id(userId);
     }
 
-    public CartItemResponse addItemToCart(CartItemRequest request){
+    public CartItemResponse addItemToCart(CartItemRequest request) {
         Long userId = getUserIdFromToken();
 
-        Cart cart = cartRepository.findByUserId(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.CART_NOT_EXISTS));
-        Product product = productRepository.findById(request.getProductId())
-                .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_EXISTED));
+        // Retrieve the user's cart
+        Cart cart = cartRepository.findByUserId(userId).orElseThrow(() -> new AppException(ErrorCode.CART_NOT_EXISTS));
 
-        Optional<CartItem> existingCartItem = cartItemRepository.findByCartAndProduct(cart, product);
+        // Retrieve the product
+        Product product = productRepository.findById(request.getProductId()).orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_EXISTED));
+
+        // Check if an item with the same product, size, and color already exists
+        Optional<CartItem> existingCartItem = cartItemRepository.findByCartAndProductAndSizeAndColor(cart, product, request.getSize(), request.getColor());
 
         CartItem cartItem;
-        if (existingCartItem.isPresent()){
-            // if the product is already in the cart, update the quantity
+        if (existingCartItem.isPresent()) {
+            // If it exists and has the same size and color, update the quantity
             cartItem = existingCartItem.get();
             cartItem.setQuantity(cartItem.getQuantity() + request.getQuantity());
-        }else {
-            // if the product is not in the cart, create a new cart item
+        } else {
+            // Create a new CartItem for the new combination of size/color
             cartItem = new CartItem();
             cartItem.setCart(cart);
             cartItem.setProduct(product);
             cartItem.setQuantity(request.getQuantity());
+            cartItem.setSize(request.getSize());
+            cartItem.setColor(request.getColor());
         }
 
+        // Save the cart item (either updated or new)
         cartItemRepository.save(cartItem);
 
+        // Build and return the response
         return CartItemResponse.builder()
                 .cartItemId(cartItem.getCartItemId())
                 .productId(cartItem.getProduct().getProductId())
                 .quantity(cartItem.getQuantity())
+                .size(cartItem.getSize())
+                .color(cartItem.getColor())
                 .build();
-
     }
 
-    public CartForUserResponse fetchCartForUser(){
+
+
+    public CartForUserResponse fetchCartForUser() {
         Long userId = getUserIdFromToken();
 
-        Cart cart = cartRepository.findByUserId(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.CART_NOT_EXISTS));
+        Cart cart = cartRepository.findByUserId(userId).orElseThrow(() -> new AppException(ErrorCode.CART_NOT_EXISTS));
 
         List<CartItem> cartItems = cartItemRepository.findByCart(cart);
 
@@ -142,40 +162,31 @@ public class CartService {
 
     }
 
-    public CartItemResponse updateCartItem(Long productId, CartItemUpdateRequest request){
+    public CartItemResponse updateCartItem(Long productId, CartItemUpdateRequest request) {
         Long userId = getUserIdFromToken();
 
-        Cart cart = cartRepository.findByUserId(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.CART_NOT_EXISTS));
+        Cart cart = cartRepository.findByUserId(userId).orElseThrow(() -> new AppException(ErrorCode.CART_NOT_EXISTS));
 
-        CartItem cartItem = cartItemRepository.findByCartAndProduct_ProductId(cart, productId)
-                .orElseThrow(() -> new AppException(ErrorCode.CART_ITEM_NOT_FOUND));
+        CartItem cartItem = cartItemRepository.findByCartAndProduct_ProductId(cart, productId).orElseThrow(() -> new AppException(ErrorCode.CART_ITEM_NOT_FOUND));
 
-        if (request.getQuantity() <= 0){
+        if (request.getQuantity() <= 0) {
             cartItemRepository.delete(cartItem);
-        }else {
+        } else {
             cartItem.setQuantity(request.getQuantity());
             cartItemRepository.save(cartItem);
         }
 
-        return CartItemResponse.builder()
-                .cartItemId(cartItem.getCartItemId())
-                .productId(cartItem.getProduct().getProductId())
-                .quantity(cartItem.getQuantity())
-                .build();
+        return CartItemResponse.builder().cartItemId(cartItem.getCartItemId()).productId(cartItem.getProduct().getProductId()).quantity(cartItem.getQuantity()).build();
     }
 
-    public void deleteItemFromCart(Long cartId, Long itemId){
+    public void deleteItemFromCart(Long cartId, Long itemId) {
         Long userId = getUserIdFromToken();
 
-        Cart cart = cartRepository.findById(cartId)
-                .orElseThrow(() -> new AppException(ErrorCode.CART_NOT_EXISTS));
+        Cart cart = cartRepository.findById(cartId).orElseThrow(() -> new AppException(ErrorCode.CART_NOT_EXISTS));
 
-        if (!cart.getUser().getId().equals(userId))
-            throw new AppException(ErrorCode.USER_NOT_AUTHORIZED);
+        if (!cart.getUser().getId().equals(userId)) throw new AppException(ErrorCode.USER_NOT_AUTHORIZED);
 
-        CartItem cartItem = cartItemRepository.findByCart_CartIdAndCartItemId(cartId, itemId)
-                .orElseThrow(() -> new AppException(ErrorCode.CART_ITEM_NOT_FOUND));
+        CartItem cartItem = cartItemRepository.findByCart_CartIdAndCartItemId(cartId, itemId).orElseThrow(() -> new AppException(ErrorCode.CART_ITEM_NOT_FOUND));
 
         cartItemRepository.delete(cartItem);
     }
@@ -183,8 +194,7 @@ public class CartService {
     public void clearAllItemsFromCart(Long cartId) {
         Long userId = getUserIdFromToken();
 
-        Cart cart = cartRepository.findById(cartId)
-                .orElseThrow(() -> new AppException(ErrorCode.CART_NOT_EXISTS));
+        Cart cart = cartRepository.findById(cartId).orElseThrow(() -> new AppException(ErrorCode.CART_NOT_EXISTS));
 
         if (!cart.getUser().getId().equals(userId)) {
             throw new AppException(ErrorCode.USER_NOT_AUTHORIZED);

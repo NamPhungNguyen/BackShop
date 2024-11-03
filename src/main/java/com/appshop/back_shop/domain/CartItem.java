@@ -26,4 +26,10 @@ public class CartItem {
 
     @Column(nullable = false)
     int quantity;
+
+    @Column(nullable = false)
+    String size;  // New field for size
+
+    @Column(nullable = false)
+    String color; // New field for color
 }
