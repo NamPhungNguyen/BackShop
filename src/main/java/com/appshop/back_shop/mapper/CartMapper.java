@@ -8,7 +8,6 @@ import com.appshop.back_shop.dto.response.Cart.CartResponse;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
-
 public interface CartMapper {
     CartResponse toResponse(Cart cart);
 }

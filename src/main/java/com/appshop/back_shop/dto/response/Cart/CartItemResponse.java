@@ -1,8 +1,9 @@
 package com.appshop.back_shop.dto.response.Cart;
 
-
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+
+import java.math.BigDecimal;
 
 @Data
 @NoArgsConstructor
@@ -10,9 +11,12 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CartItemResponse {
-    Long cartItemId;
-    Long productId;
-    int quantity;
-    String size;
-    String color;
+    private Long cartItemId;
+    private Long productId;
+    private String productName;
+    private String imageUrl;
+    private BigDecimal price;
+    private String size;
+    private String color;
+    private int quantity;
 }

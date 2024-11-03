@@ -1,6 +1,5 @@
 package com.appshop.back_shop.controller;
 
-import com.appshop.back_shop.domain.CartItem;
 import com.appshop.back_shop.dto.request.cart.CartItemRequest;
 import com.appshop.back_shop.dto.response.ApiResponse;
 import com.appshop.back_shop.dto.response.Cart.CartForUserResponse;
@@ -12,11 +11,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 
 @RestController()
@@ -55,8 +52,8 @@ public class CartController {
     }
 
     @GetMapping("/fetch-cart")
-    ApiResponse<CartForUserResponse> fetchCartForUser() {
-        return ApiResponse.<CartForUserResponse>builder().result(cartService.fetchCartForUser()).code(200).message("Get cart for user successfully").build();
+    ApiResponse<List<CartItemResponse>> fetchCartForUser() {
+        return ApiResponse.<List<CartItemResponse>>builder().result(cartService.fetchCartForUser()).code(200).message("Get cart for user successfully").build();
     }
 
     @PutMapping("/update-cart-item/{productId}")

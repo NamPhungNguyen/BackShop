@@ -95,16 +95,9 @@ public class CartService {
 
     public CartItemResponse addItemToCart(CartItemRequest request) {
         Long userId = getUserIdFromToken();
-
-        // Retrieve the user's cart
         Cart cart = cartRepository.findByUserId(userId).orElseThrow(() -> new AppException(ErrorCode.CART_NOT_EXISTS));
-
-        // Retrieve the product
         Product product = productRepository.findById(request.getProductId()).orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_EXISTED));
-
-        // Check if an item with the same product, size, and color already exists
         Optional<CartItem> existingCartItem = cartItemRepository.findByCartAndProductAndSizeAndColor(cart, product, request.getSize(), request.getColor());
-
         CartItem cartItem;
         if (existingCartItem.isPresent()) {
             // If it exists and has the same size and color, update the quantity
@@ -120,47 +113,39 @@ public class CartService {
             cartItem.setColor(request.getColor());
         }
 
-        // Save the cart item (either updated or new)
         cartItemRepository.save(cartItem);
 
-        // Build and return the response
-        return CartItemResponse.builder()
-                .cartItemId(cartItem.getCartItemId())
-                .productId(cartItem.getProduct().getProductId())
-                .quantity(cartItem.getQuantity())
-                .size(cartItem.getSize())
-                .color(cartItem.getColor())
-                .build();
+        return CartItemResponse.builder().cartItemId(cartItem.getCartItemId()).productId(cartItem.getProduct().getProductId()).quantity(cartItem.getQuantity()).size(cartItem.getSize()).color(cartItem.getColor()).build();
     }
 
 
-
-    public CartForUserResponse fetchCartForUser() {
+    public List<CartItemResponse> fetchCartForUser() {
         Long userId = getUserIdFromToken();
 
+        // Fetch the cart for the user, throwing an exception if it does not exist
         Cart cart = cartRepository.findByUserId(userId).orElseThrow(() -> new AppException(ErrorCode.CART_NOT_EXISTS));
 
+        // Fetch the cart items associated with the cart
         List<CartItem> cartItems = cartItemRepository.findByCart(cart);
 
-        CartForUserResponse cartForUserResponse = new CartForUserResponse();
-
-        cartForUserResponse.setCartId(cart.getCartId());
-        cartForUserResponse.setUserId(cart.getUser().getId());
-        cartForUserResponse.setCreateAt(cart.getCreatedAt());
-
+        // Map each CartItem to CartItemResponse
         List<CartItemResponse> cartItemResponses = cartItems.stream().map(cartItem -> {
-            CartItemResponse itemResponse = new CartItemResponse();
-            itemResponse.setCartItemId(cartItem.getCartItemId());
-            itemResponse.setProductId(cartItem.getProduct().getProductId());
-            itemResponse.setQuantity(cartItem.getQuantity());
-            return itemResponse;
+            Product product = cartItem.getProduct();
+            return CartItemResponse.builder()
+                    .cartItemId(cartItem.getCartItemId())
+                    .productId(product.getProductId())
+                    .productName(product.getName())
+                    .imageUrl(!product.getImgProduct().isEmpty() ? product.getImgProduct().get(0) : null) // Get first image URL or null
+                    .price(product.getPrice())
+                    .size(cartItem.getSize())
+                    .color(cartItem.getColor())
+                    .quantity(cartItem.getQuantity())
+                    .build();
         }).collect(Collectors.toList());
 
-        cartForUserResponse.setItems(cartItemResponses);
-
-        return cartForUserResponse;
-
+        return cartItemResponses;
     }
+
 
     public CartItemResponse updateCartItem(Long productId, CartItemUpdateRequest request) {
         Long userId = getUserIdFromToken();
