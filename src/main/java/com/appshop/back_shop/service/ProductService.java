@@ -34,25 +34,53 @@ public class ProductService {
     ProductMapper productMapper;
     CategoryRepository categoryRepository;
 
-    @PreAuthorize("hasRole('ADMIN')")
-    public ProductResponse createProduct(ProductRequest request){
-        if (productRepository.existsByName(request.getName()))
+    public ProductResponse createProduct(ProductRequest request) {
+        if (productRepository.existsByName(request.getName())) {
             throw new AppException(ErrorCode.PRODUCT_EXISTED);
+        }
 
         Category category = categoryRepository.findByCategoryId(request.getCategoryId())
                 .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_EXISTED));
 
-        Product product = productMapper.toProduct(request);
-        product.setCategory(category);
+
+        Product product = Product.builder()
+                .name(request.getName())
+                .description(request.getDescription())
+                .price(request.getPrice())
+                .stock(request.getStock())
+                .size(request.getSize())
+                .color(request.getColor())
+                .brand(request.getBrand())
+                .imgProduct(request.getImgProduct())
+                .category(category)
+                .build();
+
 
         Product savedProduct = productRepository.save(product);
 
-        ProductResponse response = productMapper.toProductResponse(savedProduct);
-
-        return response;
+        return ProductResponse.builder()
+                .productId(savedProduct.getProductId())
+                .name(savedProduct.getName())
+                .description(savedProduct.getDescription())
+                .price(savedProduct.getPrice())
+                .discount(savedProduct.getDiscount())
+                .stock(savedProduct.getStock())
+                .size(savedProduct.getSize())
+                .color(savedProduct.getColor())
+                .isAvailable(savedProduct.isAvailable())
+                .rating(savedProduct.getRating())
+                .ratingCount(savedProduct.getRatingCount())
+                .brand(savedProduct.getBrand())
+                .productCode(savedProduct.getProductCode())
+                .imgProduct(savedProduct.getImgProduct())
+                .categoryId(category.getCategoryId())
+                .categoryName(category.getName())
+                .createdAt(savedProduct.getCreatedAt())
+                .updatedAt(savedProduct.getUpdatedAt())
+                .build();
     }
 
-    public List<ProductResponse> getListProduct(){
+    public List<ProductResponse> getListProduct() {
         return productRepository.findAll().stream()
                 .map(productMapper::toProductResponse).toList();
     }
@@ -66,7 +94,7 @@ public class ProductService {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    public ProductResponse fetchProductName(String name){
+    public ProductResponse fetchProductName(String name) {
         Product product = productRepository.findByName(name)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_EXISTED));
 
@@ -82,7 +110,7 @@ public class ProductService {
             throw new AppException(ErrorCode.PRODUCT_EXISTED);
 
         Category category = categoryRepository.findByCategoryId(request.getCategoryId())
-                        .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_EXISTED));
+                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_EXISTED));
 
         product.setName(request.getName());
         product.setDescription(request.getDescription());
@@ -98,12 +126,12 @@ public class ProductService {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    public void deleteProduct(Long id){
+    public void deleteProduct(Long id) {
         productRepository.deleteById(id);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    public ProductStockResponse updateStock(Long productId, ProductStockRequest request){
+    public ProductStockResponse updateStock(Long productId, ProductStockRequest request) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_EXISTED));
 
@@ -127,7 +155,7 @@ public class ProductService {
 
     // fetch cac san pham co stock sap het hang
     @PreAuthorize("hasRole('ADMIN')")
-    public List<ProductLowStockResponse> fetchAllLowProducts(int threshold){
+    public List<ProductLowStockResponse> fetchAllLowProducts(int threshold) {
         List<Product> products = productRepository.findByStockLessThan(threshold);
         return products.stream().map(product ->
                 ProductLowStockResponse.builder()
@@ -154,7 +182,7 @@ public class ProductService {
                 .collect(Collectors.toList());
     }
 
-    public List<ProductResponse> fetchProductsByPriceRange(BigDecimal minPrice, BigDecimal maxPrice){
+    public List<ProductResponse> fetchProductsByPriceRange(BigDecimal minPrice, BigDecimal maxPrice) {
         List<Product> products = productRepository.findByPriceBetween(minPrice, maxPrice);
         return products.stream()
                 .map(productMapper::toProductResponse)

@@ -14,8 +14,8 @@ public class ProductWithCategoryResponse {
     private String description;
     private BigDecimal price;
     private int stock;
-    private String size;
-    private String color;
+    private List<String> size;
+    private List<String> color;
     private List<String> imgProduct;
     private String categoryName;
 }

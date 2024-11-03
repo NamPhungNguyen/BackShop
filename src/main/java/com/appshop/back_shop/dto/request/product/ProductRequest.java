@@ -16,8 +16,9 @@ public class ProductRequest {
     String description;
     BigDecimal price;
     int stock;
-    String size;
-    String color;
+    List<String> size;  // Changed from size to sizes
+    List<String> color;  // Ensure you're using a list for multiple colors
+    String brand;
     List<String> imgProduct;
     Long categoryId;
 }

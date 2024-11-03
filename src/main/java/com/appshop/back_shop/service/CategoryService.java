@@ -26,7 +26,10 @@ public class CategoryService {
         if (categoryRepository.existsByName(request.getName())){
             throw new AppException(ErrorCode.CATEGORY_EXISTED);
         }
-        Category category = categoryMapper.toCategory(request);
+        Category category = new Category();
+        category.setName(request.getName());
+        category.setDescription(request.getDescription());
+        category.setImage(request.getImage());
         return categoryRepository.save(category);
     }
 

@@ -18,5 +18,4 @@ public interface ProductMapper {
     ProductResponse toProductResponse(Product request);
 
     void updateProduct(@MappingTarget Product product, ProductRequest request);
-
 }

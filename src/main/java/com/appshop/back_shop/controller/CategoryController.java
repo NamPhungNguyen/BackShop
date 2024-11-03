@@ -35,8 +35,6 @@ public class CategoryController {
     ApiResponse<List<Category>> getListCategories(){
         return ApiResponse.<List<Category>>builder()
                 .result(categoryService.getListCategories())
-                .code(200)
-                .message("Categories list successfully")
                 .build();
     }
 

@@ -27,6 +27,8 @@ public class Category {
     @Column(length = 500)
     String description;
 
+    String image;
+
     @CreationTimestamp
     @Column(nullable = false)
     LocalDateTime createdAt;

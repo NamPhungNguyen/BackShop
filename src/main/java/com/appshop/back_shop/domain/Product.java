@@ -1,5 +1,6 @@
 package com.appshop.back_shop.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -18,6 +19,7 @@ import java.util.List;
 @Data
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,23 +35,45 @@ public class Product {
     @Column(nullable = false)
     BigDecimal price;
 
+    @Column
+    BigDecimal discount;
+
     @Column(nullable = false)
     int stock;
 
-    @Column(nullable = false)
-    String size;
+    @ElementCollection
+    @CollectionTable(name = "product_sizes", joinColumns = @JoinColumn(name = "product_id"))
+    @Column(name = "size")
+    List<String> size = new ArrayList<>();
+
+    @ElementCollection
+    @CollectionTable(name = "product_colors", joinColumns = @JoinColumn(name = "product_id"))
+    @Column(name = "color")
+    List<String> color = new ArrayList<>();
 
     @Column(nullable = false)
-    String color;
+    boolean isAvailable = true;
+
+    @Column
+    double rating = 0.0;
+
+    @Column
+    int ratingCount = 0;
+
+    @Column
+    String brand;
+
+    @Column(unique = true)
+    String productCode;
 
     @ElementCollection
     @CollectionTable(name = "product_images", joinColumns = @JoinColumn(name = "product_id"))
     @Column(name = "img_url")
     List<String> imgProduct = new ArrayList<>();
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
-    Category category;
+    private Category category;
 
     @CreationTimestamp
     @Column(updatable = false)
@@ -59,3 +83,4 @@ public class Product {
     @Column(nullable = false)
     LocalDateTime updatedAt;
 }
+

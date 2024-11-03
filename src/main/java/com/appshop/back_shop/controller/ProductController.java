@@ -1,6 +1,5 @@
 package com.appshop.back_shop.controller;
 
-import com.appshop.back_shop.domain.Product;
 import com.appshop.back_shop.dto.request.product.ProductRequest;
 import com.appshop.back_shop.dto.request.product.ProductStockRequest;
 import com.appshop.back_shop.dto.response.ApiResponse;
@@ -13,7 +12,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
