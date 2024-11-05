@@ -1,5 +1,6 @@
 package com.appshop.back_shop.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -20,26 +21,32 @@ public class ShippingAddress {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long addressId;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnore
     User user;
 
     @Column(nullable = false)
-    String addressLine1;
-
-    String addressLine2;
+    String fullName;
 
     @Column(nullable = false)
+    String phoneNumber;
+
+    @Column(nullable = false)
+    String addressDetail;
+
+    String additionalAddress;
+    String province;
     String city;
 
     @Column(nullable = false)
-    String state;
+    String country = "Vietnam";
 
     @Column(nullable = false)
-    String country;
+    Boolean isDefault = false;
 
     @CreationTimestamp
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     LocalDateTime createdAt;
 
     @UpdateTimestamp

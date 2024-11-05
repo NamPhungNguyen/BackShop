@@ -131,21 +131,22 @@ public class CartService {
         // Map each CartItem to CartItemResponse
         List<CartItemResponse> cartItemResponses = cartItems.stream().map(cartItem -> {
             Product product = cartItem.getProduct();
-            return CartItemResponse.builder()
-                    .cartItemId(cartItem.getCartItemId())
-                    .productId(product.getProductId())
-                    .productName(product.getName())
-                    .imageUrl(!product.getImgProduct().isEmpty() ? product.getImgProduct().get(0) : null) // Get first image URL or null
-                    .price(product.getPrice())
-                    .size(cartItem.getSize())
-                    .color(cartItem.getColor())
-                    .quantity(cartItem.getQuantity())
-                    .build();
+            return CartItemResponse.builder().cartItemId(cartItem.getCartItemId()).productId(product.getProductId()).productName(product.getName()).imageUrl(!product.getImgProduct().isEmpty() ? product.getImgProduct().get(0) : null) // Get first image URL or null
+                    .price(product.getPrice()).size(cartItem.getSize()).color(cartItem.getColor()).quantity(cartItem.getQuantity()).build();
         }).collect(Collectors.toList());
 
         return cartItemResponses;
     }
 
+    public void deleteItemFromCart(Long itemId) {
+        Long userId = getUserIdFromToken();
+
+        Cart cart = cartRepository.findByUserId(userId).orElseThrow(() -> new AppException(ErrorCode.CART_NOT_EXISTS));
+
+        CartItem cartItem = cartItemRepository.findByCart_CartIdAndCartItemId(cart.getCartId(), itemId).orElseThrow(() -> new AppException(ErrorCode.CART_ITEM_NOT_FOUND));
+
+        cartItemRepository.delete(cartItem);
+    }
 
     public CartItemResponse updateCartItem(Long productId, CartItemUpdateRequest request) {
         Long userId = getUserIdFromToken();
@@ -164,17 +165,6 @@ public class CartService {
         return CartItemResponse.builder().cartItemId(cartItem.getCartItemId()).productId(cartItem.getProduct().getProductId()).quantity(cartItem.getQuantity()).build();
     }
 
-    public void deleteItemFromCart(Long cartId, Long itemId) {
-        Long userId = getUserIdFromToken();
-
-        Cart cart = cartRepository.findById(cartId).orElseThrow(() -> new AppException(ErrorCode.CART_NOT_EXISTS));
-
-        if (!cart.getUser().getId().equals(userId)) throw new AppException(ErrorCode.USER_NOT_AUTHORIZED);
-
-        CartItem cartItem = cartItemRepository.findByCart_CartIdAndCartItemId(cartId, itemId).orElseThrow(() -> new AppException(ErrorCode.CART_ITEM_NOT_FOUND));
-
-        cartItemRepository.delete(cartItem);
-    }
 
     public void clearAllItemsFromCart(Long cartId) {
         Long userId = getUserIdFromToken();

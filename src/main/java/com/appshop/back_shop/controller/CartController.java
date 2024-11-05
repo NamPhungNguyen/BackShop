@@ -2,7 +2,6 @@ package com.appshop.back_shop.controller;
 
 import com.appshop.back_shop.dto.request.cart.CartItemRequest;
 import com.appshop.back_shop.dto.response.ApiResponse;
-import com.appshop.back_shop.dto.response.Cart.CartForUserResponse;
 import com.appshop.back_shop.dto.response.Cart.CartItemResponse;
 import com.appshop.back_shop.dto.response.Cart.CartItemUpdateRequest;
 import com.appshop.back_shop.dto.response.Cart.CartResponse;
@@ -61,9 +60,9 @@ public class CartController {
         return ApiResponse.<CartItemResponse>builder().result(cartService.updateCartItem(productId, request)).code(200).message("Cart updated successfully").build();
     }
 
-    @DeleteMapping("/{cartId}/items/{itemId}")
-    public ApiResponse<Void> deleteItemFromCart(@PathVariable("cartId") Long cartId, @PathVariable("itemId") Long itemId) {
-        cartService.deleteItemFromCart(cartId, itemId);
+    @DeleteMapping("/items/{itemId}")
+    public ApiResponse<Void> deleteItemFromCart(@PathVariable("itemId") Long itemId) {
+        cartService.deleteItemFromCart(itemId);
         return ApiResponse.<Void>builder().code(200).message("Item removed from cart").build();
     }
 

@@ -33,8 +33,8 @@ public enum ErrorCode {
     ORDER_NOT_FOUND(1023, "Order not found", HttpStatus.NOT_FOUND),
     INVALID_PAYMENT_METHOD(1024, "Invalid payment method", HttpStatus.PAYMENT_REQUIRED),
     PAYMENT_NOT_FOUND(1025, "Payment not found", HttpStatus.NOT_FOUND),
-
-
+    SHIPPING_ADDRESS_NOT_EXITS(1026, "Shipping address not exits", HttpStatus.BAD_REQUEST),
+    SHIPPING_ADDRESS_NOT_FOUND(1026, "Shipping address not found", HttpStatus.NOT_FOUND),
 
     ;
 
