@@ -39,15 +39,30 @@ public class AddressService {
     public ShippingAddress updateAddress(Long addressId, ShippingAddress address) {
         ShippingAddress existingAddress = addressRepository.findById(addressId).orElseThrow(() -> new AppException(ErrorCode.SHIPPING_ADDRESS_NOT_EXITS));
 
-        address.setUser(existingAddress.getUser());
-
-        existingAddress.setFullName(address.getFullName());
-        existingAddress.setPhoneNumber(address.getPhoneNumber());
-        existingAddress.setAddressDetail(address.getAddressDetail());
-        existingAddress.setAdditionalAddress(address.getAdditionalAddress());
-        existingAddress.setProvince(address.getProvince());
-        existingAddress.setCity(address.getCity());
-        existingAddress.setCountry(address.getCountry());
+        if (address.getFullName() != null) {
+            existingAddress.setFullName(address.getFullName());
+        }
+        if (address.getPhoneNumber() != null) {
+            existingAddress.setPhoneNumber(address.getPhoneNumber());
+        }
+        if (address.getAddressDetail() != null) {
+            existingAddress.setAddressDetail(address.getAddressDetail());
+        }
+        if (address.getAdditionalAddress() != null) {
+            existingAddress.setAdditionalAddress(address.getAdditionalAddress());
+        }
+        if (address.getProvince() != null) {
+            existingAddress.setProvince(address.getProvince());
+        }
+        if (address.getCity() != null) {
+            existingAddress.setCity(address.getCity());
+        }
+        if (address.getCountry() != null) {
+            existingAddress.setCountry(address.getCountry());
+        }
+        if (address.getIsDefault() != null) {
+            existingAddress.setIsDefault(address.getIsDefault());
+        }
 
         return addressRepository.save(existingAddress);
     }
@@ -59,21 +74,27 @@ public class AddressService {
     public ShippingAddress setDefaultAddress(Long addressId) {
         List<ShippingAddress> addresses = addressRepository.findByUserId(getUserIdFromToken());
 
+        boolean addressFound = false;
+
         for (ShippingAddress address : addresses) {
-            boolean shouldBeDefault = address.getAddressId().equals(addressId);
-            if (address.getIsDefault() != shouldBeDefault) {
-                address.setIsDefault(shouldBeDefault);
-                addressRepository.save(address);
+            if (address.getAddressId().equals(addressId)) {
+                address.setIsDefault(true);
+                addressFound = true;
+            } else {
+                address.setIsDefault(false);
             }
+            addressRepository.save(address);
+        }
+        if (!addressFound) {
+            throw new AppException(ErrorCode.SHIPPING_ADDRESS_NOT_FOUND);
         }
 
         return addressRepository.findById(addressId).orElseThrow(() -> new AppException(ErrorCode.SHIPPING_ADDRESS_NOT_FOUND));
     }
 
+
     public List<ShippingAddress> getUserAddresses() {
         Long userId = getUserIdFromToken();
         return addressRepository.findByUserId(userId);
     }
-
-
 }
