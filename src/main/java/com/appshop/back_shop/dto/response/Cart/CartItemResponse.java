@@ -11,12 +11,15 @@ import java.math.BigDecimal;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CartItemResponse {
-    private Long cartItemId;
-    private Long productId;
-    private String productName;
-    private String imageUrl;
-    private BigDecimal price;
-    private String size;
-    private String color;
-    private int quantity;
+    Long cartItemId;
+    Long productId;
+    String productName;
+    String imageUrl;
+    BigDecimal price;
+    String size;
+    String color;
+    int quantity;
+    BigDecimal discount;
+    BigDecimal totalPrice;
+    BigDecimal discountPrice;
 }

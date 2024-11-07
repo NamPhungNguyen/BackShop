@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 
@@ -42,22 +43,22 @@ public class CartController {
     @DeleteMapping("/delete-by-userId/{userId}")
     ApiResponse<Void> deleteCartByUserId(@PathVariable("userId") Long userId) {
         cartService.deleteCartByUserId(userId);
-        return ApiResponse.<Void>builder().code(200).message("Cart for user deleted successfully").build();
+        return ApiResponse.<Void>builder().code(200).message("Success").build();
     }
 
     @PostMapping("/add-item-to-cart")
     ApiResponse<CartItemResponse> addItemToCart(@RequestBody CartItemRequest request) {
-        return ApiResponse.<CartItemResponse>builder().result(cartService.addItemToCart(request)).code(200).message("add item to cart successfully").build();
+        return ApiResponse.<CartItemResponse>builder().result(cartService.addItemToCart(request)).code(200).message("Success").build();
+    }
+
+    @PutMapping("/update-item-quantity/{cartItemId}")
+    ApiResponse<CartItemResponse> updateItemQuantityFromCart(@PathVariable("cartItemId") Long cartItemId, @RequestBody CartItemUpdateRequest request) {
+        return ApiResponse.<CartItemResponse>builder().result(cartService.updateItemQuantity(cartItemId, request.getQuantity())).code(200).message("Success").build();
     }
 
     @GetMapping("/fetch-cart")
     ApiResponse<List<CartItemResponse>> fetchCartForUser() {
-        return ApiResponse.<List<CartItemResponse>>builder().result(cartService.fetchCartForUser()).code(200).message("Get cart for user successfully").build();
-    }
-
-    @PutMapping("/update-cart-item/{productId}")
-    ApiResponse<CartItemResponse> updateCartItem(@PathVariable Long productId, @RequestBody CartItemUpdateRequest request) {
-        return ApiResponse.<CartItemResponse>builder().result(cartService.updateCartItem(productId, request)).code(200).message("Cart updated successfully").build();
+        return ApiResponse.<List<CartItemResponse>>builder().result(cartService.fetchCartForUser()).code(200).message("Success").build();
     }
 
     @DeleteMapping("/items/{itemId}")
