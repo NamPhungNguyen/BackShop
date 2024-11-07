@@ -33,6 +33,9 @@ public class AddressService {
     public ShippingAddress addAddress(ShippingAddress address) {
         User user = userRepository.findById(getUserIdFromToken()).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         address.setUser(user);
+        if (address.getIsDefault() != null && address.getIsDefault()) {
+            clearOtherDefaultAddresses(user.getId());
+        }
         return addressRepository.save(address);
     }
 
@@ -64,37 +67,57 @@ public class AddressService {
             existingAddress.setIsDefault(address.getIsDefault());
         }
 
+        if (address.getIsDefault() != null && address.getIsDefault()) {
+            clearOtherDefaultAddresses(existingAddress.getUser().getId());
+            existingAddress.setIsDefault(true);
+        }
+
         return addressRepository.save(existingAddress);
     }
 
     public void deleteAddress(Long addressId) {
+        ShippingAddress addressToDelete = addressRepository.findById(addressId)
+                .orElseThrow(() -> new AppException(ErrorCode.SHIPPING_ADDRESS_NOT_FOUND));
+
+        if (addressToDelete.getIsDefault() != null && addressToDelete.getIsDefault()) {
+            throw new AppException(ErrorCode.CANNOT_DELETE_DEFAULT_ADDRESS);
+        }
+
         addressRepository.deleteById(addressId);
     }
+
 
     public ShippingAddress setDefaultAddress(Long addressId) {
         List<ShippingAddress> addresses = addressRepository.findByUserId(getUserIdFromToken());
 
-        boolean addressFound = false;
+        ShippingAddress addressToSetDefault = addresses.stream()
+                .filter(address -> address.getAddressId().equals(addressId))
+                .findFirst()
+                .orElseThrow(() -> new AppException(ErrorCode.SHIPPING_ADDRESS_NOT_FOUND));
 
         for (ShippingAddress address : addresses) {
-            if (address.getAddressId().equals(addressId)) {
-                address.setIsDefault(true);
-                addressFound = true;
-            } else {
+            if (address.getIsDefault() != null && address.getIsDefault()) {
                 address.setIsDefault(false);
+                addressRepository.save(address);
             }
-            addressRepository.save(address);
-        }
-        if (!addressFound) {
-            throw new AppException(ErrorCode.SHIPPING_ADDRESS_NOT_FOUND);
         }
 
-        return addressRepository.findById(addressId).orElseThrow(() -> new AppException(ErrorCode.SHIPPING_ADDRESS_NOT_FOUND));
+        addressToSetDefault.setIsDefault(true);
+        return addressRepository.save(addressToSetDefault);
     }
-
 
     public List<ShippingAddress> getUserAddresses() {
         Long userId = getUserIdFromToken();
         return addressRepository.findByUserId(userId);
+    }
+
+    private void clearOtherDefaultAddresses(Long userId) {
+        List<ShippingAddress> userAddresses = addressRepository.findByUserId(userId);
+        for (ShippingAddress address : userAddresses) {
+            if (address.getIsDefault() != null && address.getIsDefault()) {
+                address.setIsDefault(false);
+                addressRepository.save(address);
+            }
+        }
     }
 }

@@ -7,7 +7,7 @@ import org.springframework.http.HttpStatusCode;
 
 @Getter
 public enum ErrorCode {
-    USER_EXISTED(1001, "User existed",HttpStatus.BAD_REQUEST),
+    USER_EXISTED(1001, "User existed", HttpStatus.BAD_REQUEST),
     UNCATEGORIZED_EXCEPTION(9999, "Uncategorized error", HttpStatus.INTERNAL_SERVER_ERROR),
     USERNAME_INVALID(1002, "Username must be at least 3 characters", HttpStatus.BAD_REQUEST),
     PASSWORD_INVALID(1003, "Password must be at least 8 characters", HttpStatus.BAD_REQUEST),
@@ -34,7 +34,8 @@ public enum ErrorCode {
     INVALID_PAYMENT_METHOD(1024, "Invalid payment method", HttpStatus.PAYMENT_REQUIRED),
     PAYMENT_NOT_FOUND(1025, "Payment not found", HttpStatus.NOT_FOUND),
     SHIPPING_ADDRESS_NOT_EXITS(1026, "Shipping address not exits", HttpStatus.BAD_REQUEST),
-    SHIPPING_ADDRESS_NOT_FOUND(1026, "Shipping address not found", HttpStatus.NOT_FOUND),
+    SHIPPING_ADDRESS_NOT_FOUND(1027, "Shipping address not found", HttpStatus.NOT_FOUND),
+    CANNOT_DELETE_DEFAULT_ADDRESS(1028, "Cannot delete default address", HttpStatus.NOT_FOUND),
 
     ;
 
