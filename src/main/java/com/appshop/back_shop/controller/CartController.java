@@ -28,9 +28,9 @@ public class CartController {
         return ApiResponse.<CartResponse>builder().result(cartService.getCartForUser()).code(200).message("Cart retrieved successfully").build();
     }
 
-    @PostMapping("/create")
-    ApiResponse<CartResponse> createCart() {
-        return ApiResponse.<CartResponse>builder().result(cartService.createCart()).code(200).message("Create cart for user successfully").build();
+    @PostMapping("/create/{userId}")
+    ApiResponse<CartResponse> createCart(@PathVariable("userId") Long userId) {
+        return ApiResponse.<CartResponse>builder().result(cartService.createCart(userId)).code(200).message("Create cart for user successfully").build();
     }
 
     @DeleteMapping("/delete/{cartId}")

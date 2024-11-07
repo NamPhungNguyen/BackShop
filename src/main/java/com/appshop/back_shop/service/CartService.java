@@ -62,9 +62,7 @@ public class CartService {
         return cartResponse;
     }
 
-    public CartResponse createCart() {
-        Long userId = getUserIdFromToken();
-
+    public CartResponse createCart(Long userId) {
         User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         if (cartRepository.existsByUser(user)) throw new AppException(ErrorCode.CART_ALREADY_EXISTS);
