@@ -36,6 +36,8 @@ public enum ErrorCode {
     SHIPPING_ADDRESS_NOT_EXITS(1026, "Shipping address not exits", HttpStatus.BAD_REQUEST),
     SHIPPING_ADDRESS_NOT_FOUND(1027, "Shipping address not found", HttpStatus.NOT_FOUND),
     CANNOT_DELETE_DEFAULT_ADDRESS(1028, "Cannot delete default address", HttpStatus.NOT_FOUND),
+    DEFAULT_SHIPPING_ADDRESS_NOT_FOUND(1029, "Default Shipping address not found", HttpStatus.NOT_FOUND),
+
 
     ;
 

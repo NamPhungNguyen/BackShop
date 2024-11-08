@@ -111,6 +111,16 @@ public class AddressService {
         return addressRepository.findByUserId(userId);
     }
 
+    public ShippingAddress getUserAddressDefault() {
+        Long userId = getUserIdFromToken();
+        List<ShippingAddress> addresses = addressRepository.findByUserId(userId);
+
+        return addresses.stream()
+                .filter(address -> Boolean.TRUE.equals(address.getIsDefault()))
+                .findFirst()
+                .orElseThrow(() -> new AppException(ErrorCode.DEFAULT_SHIPPING_ADDRESS_NOT_FOUND));
+    }
+
     private void clearOtherDefaultAddresses(Long userId) {
         List<ShippingAddress> userAddresses = addressRepository.findByUserId(userId);
         for (ShippingAddress address : userAddresses) {
