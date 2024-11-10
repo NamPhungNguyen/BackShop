@@ -22,4 +22,5 @@ public class CartItemResponse {
     BigDecimal discount;
     BigDecimal totalPrice;
     BigDecimal discountPrice;
+    boolean checkedOut;
 }

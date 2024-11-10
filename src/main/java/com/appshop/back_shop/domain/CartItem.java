@@ -28,8 +28,9 @@ public class CartItem {
     int quantity;
 
     @Column(nullable = false)
-    String size;  // New field for size
+    String size;
 
     @Column(nullable = false)
-    String color; // New field for color
+    String color;
+    boolean checkedOut;
 }

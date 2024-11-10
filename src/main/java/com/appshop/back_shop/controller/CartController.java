@@ -1,10 +1,12 @@
 package com.appshop.back_shop.controller;
 
 import com.appshop.back_shop.dto.request.cart.CartItemRequest;
+import com.appshop.back_shop.dto.request.checkout.CheckoutRequest;
 import com.appshop.back_shop.dto.response.ApiResponse;
 import com.appshop.back_shop.dto.response.Cart.CartItemResponse;
 import com.appshop.back_shop.dto.response.Cart.CartItemUpdateRequest;
 import com.appshop.back_shop.dto.response.Cart.CartResponse;
+import com.appshop.back_shop.dto.response.checkout.CheckoutResponse;
 import com.appshop.back_shop.service.CartService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AccessLevel;
@@ -12,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 
@@ -25,7 +26,7 @@ public class CartController {
     CartService cartService;
 
     @GetMapping("/user/cart")
-    public ApiResponse<CartResponse> getCart() {
+    ApiResponse<CartResponse> getCart() {
         return ApiResponse.<CartResponse>builder().result(cartService.getCartForUser()).code(200).message("Cart retrieved successfully").build();
     }
 
@@ -61,14 +62,25 @@ public class CartController {
         return ApiResponse.<List<CartItemResponse>>builder().result(cartService.fetchCartForUser()).code(200).message("Success").build();
     }
 
+    @PutMapping("/update-checkout-status")
+    ApiResponse<Void> updateCheckoutStatus(@RequestBody CheckoutRequest request, @RequestParam boolean isSelect) {
+        cartService.updateItemsForCheckout(request, isSelect);
+        return ApiResponse.<Void>builder().code(200).message("Success").build();
+    }
+
+    @GetMapping("/product-checkout")
+    ApiResponse<CheckoutResponse> getProductCheckout() {
+        return ApiResponse.<CheckoutResponse>builder().result(cartService.getProductsForCheckout()).build();
+    }
+
     @DeleteMapping("/items/{itemId}")
-    public ApiResponse<Void> deleteItemFromCart(@PathVariable("itemId") Long itemId) {
+    ApiResponse<Void> deleteItemFromCart(@PathVariable("itemId") Long itemId) {
         cartService.deleteItemFromCart(itemId);
         return ApiResponse.<Void>builder().code(200).message("Item removed from cart").build();
     }
 
     @DeleteMapping("/{cartId}/items")
-    public ApiResponse<Void> clearAllItemsFromCart(@PathVariable("cartId") Long cartId) {
+    ApiResponse<Void> clearAllItemsFromCart(@PathVariable("cartId") Long cartId) {
         cartService.clearAllItemsFromCart(cartId);
         return ApiResponse.<Void>builder().code(200).message("All items cleared from cart").build();
     }

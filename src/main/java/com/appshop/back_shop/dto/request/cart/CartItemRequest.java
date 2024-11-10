@@ -1,6 +1,4 @@
 package com.appshop.back_shop.dto.request.cart;
-
-
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
