@@ -37,7 +37,10 @@ public enum ErrorCode {
     SHIPPING_ADDRESS_NOT_FOUND(1027, "Shipping address not found", HttpStatus.NOT_FOUND),
     CANNOT_DELETE_DEFAULT_ADDRESS(1028, "Cannot delete default address", HttpStatus.NOT_FOUND),
     DEFAULT_SHIPPING_ADDRESS_NOT_FOUND(1029, "Default Shipping address not found", HttpStatus.NOT_FOUND),
-
+    EXPIRY_DATE_MUST_BE_THE_FUTURE(1030, "Expiry date must be in the future.", HttpStatus.BAD_REQUEST),
+    COUPON_NOT_FOUND(1031, "Coupon not found or inactive", HttpStatus.NOT_FOUND),
+    COUPON_OUT_OF_STOCK(1032, "No coupons remaining for this pool code", HttpStatus.BAD_REQUEST),
+    COUPON_ALREADY_CLAIMED(1033, "User has already claimed this coupon", HttpStatus.BAD_REQUEST),
 
     ;
 

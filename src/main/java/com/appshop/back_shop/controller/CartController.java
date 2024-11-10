@@ -69,8 +69,8 @@ public class CartController {
     }
 
     @GetMapping("/product-checkout")
-    ApiResponse<CheckoutResponse> getProductCheckout() {
-        return ApiResponse.<CheckoutResponse>builder().result(cartService.getProductsForCheckout()).build();
+    CheckoutResponse getProductCheckout() {
+        return cartService.getProductsForCheckout();
     }
 
     @DeleteMapping("/items/{itemId}")
