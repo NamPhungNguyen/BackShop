@@ -29,6 +29,8 @@ public class Order {
     @Column(nullable = false)
     BigDecimal totalAmount;
 
+    BigDecimal discountAmount;
+
     @Column(nullable = false)
     LocalDateTime createdAt;
 

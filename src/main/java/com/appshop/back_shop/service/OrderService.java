@@ -1,199 +1,96 @@
 package com.appshop.back_shop.service;
 
-import com.appshop.back_shop.domain.*;
-import com.appshop.back_shop.dto.response.order.*;
+import com.appshop.back_shop.domain.CartItem;
+import com.appshop.back_shop.domain.Order;
+import com.appshop.back_shop.domain.OrderItem;
+import com.appshop.back_shop.domain.User;
+import com.appshop.back_shop.dto.request.order.CreateOrderRequest;
+import com.appshop.back_shop.dto.response.order.OrderResponse;
 import com.appshop.back_shop.exception.AppException;
 import com.appshop.back_shop.exception.ErrorCode;
-import com.appshop.back_shop.repository.*;
-import jakarta.transaction.Transactional;
+import com.appshop.back_shop.repository.CartItemRepository;
+import com.appshop.back_shop.repository.OrderItemRepository;
+import com.appshop.back_shop.repository.OrderRepository;
+import com.appshop.back_shop.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.aspectj.weaver.ast.Or;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class OrderService {
-    private final CartRepository cartRepository;
-    private final CartItemRepository cartItemRepository;
-    private final OrderRepository orderRepository;
-    private final OrderItemRepository orderItemRepository;
 
-    public Long getUserIdFromToken() {
+    OrderRepository orderRepository;
+    OrderItemRepository orderItemRepository;
+    CartItemRepository cartItemRepository;
+    UserRepository userRepository;
+
+    // Get the user ID from the JWT token
+    private Long getUserIdFromToken() {
         JwtAuthenticationToken authenticationToken = (JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
-        Jwt jwt = (Jwt) authenticationToken.getCredentials();
-        return jwt.getClaim("userId");
+        return (Long) authenticationToken.getPrincipal();
     }
 
     @Transactional
-    public OrderResponse createOrder() {
+    public OrderResponse createOrder(CreateOrderRequest request) {
         Long userId = getUserIdFromToken();
 
-        Cart cart = cartRepository.findByUserId(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.CART_NOT_EXISTS));
-
-        List<CartItem> cartItems = cartItemRepository.findByCart(cart);
+        // Get user's cart items (Only items marked as checked out)
+        List<CartItem> cartItems = cartItemRepository.findByCart_User_IdAndCheckedOutTrue(userId);
 
         if (cartItems.isEmpty()) {
-            throw new AppException(ErrorCode.CART_EMPTY);
+            throw new AppException(ErrorCode.EMPTY_CART);
         }
 
+        // Calculate the total amount before any discounts
         BigDecimal totalAmount = cartItems.stream()
-                .map(cartItem -> cartItem.getProduct().getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())))
+                .map(cartItem -> {
+                    BigDecimal discountPrice = cartItem.getProduct().getPrice()
+                            .multiply(BigDecimal.valueOf(1 - cartItem.getProduct().getDiscount().doubleValue() / 100));
+                    return discountPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+                })
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+        // Retrieve the user
+        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        // Create the order object
         Order order = Order.builder()
-                .user(cart.getUser())
-                .status("pending")
+                .user(user)
+                .status("pending") // Status could be "pending", you might change this based on your workflow
                 .totalAmount(totalAmount)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
 
+        // Save the order first and assign the saved order to a variable
         Order savedOrder = orderRepository.save(order);
 
-        List<OrderItem> orderItems = cartItems.stream()
-                .map(cartItem -> OrderItem.builder()
-                        .order(savedOrder)
-                        .product(cartItem.getProduct())
-                        .quantity(cartItem.getQuantity())
-                        .price(cartItem.getProduct().getPrice())
-                        .build())
-                .collect(Collectors.toList());
+        // Create order items for each cart item
+        cartItems.forEach(cartItem -> {
+            OrderItem orderItem = OrderItem.builder()
+                    .order(savedOrder) // Use the saved order here
+                    .product(cartItem.getProduct())
+                    .quantity(cartItem.getQuantity())
+                    .price(cartItem.getProduct().getPrice())
+                    .build();
+            orderItemRepository.save(orderItem);
+        });
 
-        orderItemRepository.saveAll(orderItems);
+        // Optionally, mark the cart items as checked out
+        cartItems.forEach(cartItem -> cartItem.setCheckedOut(true));
+        cartItemRepository.saveAll(cartItems);
 
-        cartItemRepository.deleteAll(cartItems);
-
-        List<OrderItemResponse> orderItemResponses = orderItems.stream()
-                .map(orderItem -> OrderItemResponse.builder()
-                        .orderItemId(orderItem.getOrderItemId())
-                        .productId(orderItem.getProduct().getProductId())
-                        .quantity(orderItem.getQuantity())
-                        .price(orderItem.getPrice())
-                        .build())
-                .collect(Collectors.toList());
-
-        return OrderResponse.builder()
-                .orderId(savedOrder.getOrderId())
-                .status(savedOrder.getStatus())
-                .totalAmount(savedOrder.getTotalAmount())
-                .createdAt(savedOrder.getCreatedAt())
-                .updatedAt(savedOrder.getUpdatedAt())
-                .items(orderItemResponses)
-                .build();
+        // Return a response with the order details
+        return new OrderResponse(savedOrder.getOrderId(), totalAmount, savedOrder.getStatus());
     }
-
-    @Transactional
-    public List<OrderResponse> fetchOrdersByUserId() {
-        Long userId = getUserIdFromToken();
-
-        List<Order> orders = orderRepository.findByUserId(userId);
-
-        return orders.stream()
-                .map(order -> {
-                    List<OrderItemResponse> orderItemResponses = orderItemRepository.findByOrder(order).stream()
-                            .map(orderItem -> OrderItemResponse.builder()
-                                    .orderItemId(orderItem.getOrderItemId())
-                                    .productId(orderItem.getProduct().getProductId())
-                                    .quantity(orderItem.getQuantity())
-                                    .price(orderItem.getPrice())
-                                    .build())
-                            .collect(Collectors.toList());
-
-                    return OrderResponse.builder()
-                            .orderId(order.getOrderId())
-                            .status(order.getStatus())
-                            .totalAmount(order.getTotalAmount())
-                            .createdAt(order.getCreatedAt())
-                            .updatedAt(order.getUpdatedAt())
-                            .items(orderItemResponses)
-                            .build();
-                })
-                .collect(Collectors.toList());
-    }
-
-    @Transactional
-    public OrderDetailResponse fetchOrderDetailsById(Long orderId){
-        Order order = orderRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
-
-        List<OrderItem> orderItems = orderItemRepository.findByOrder(order);
-
-        List<OrderItemResponseDetail> orderItemResponseDetails = orderItems.stream()
-                .map(
-                        orderItem -> OrderItemResponseDetail.builder()
-                                .orderItemId(orderItem.getOrderItemId())
-                                .product(OrderProductDetailResponse.builder()
-                                        .productId(orderItem.getOrderItemId())
-                                        .productName(orderItem.getProduct().getName())
-                                                .build())
-                                .quantity(orderItem.getQuantity())
-                                .price(orderItem.getPrice())
-                                .build()
-                ).collect(Collectors.toList());
-
-        return OrderDetailResponse.builder()
-                .orderId(order.getOrderId())
-                .user(OrderUserResponse.builder()
-                        .userId(order.getUser().getId())
-                        .username(order.getUser().getUsername())
-                        .build())
-                .status(order.getStatus())
-                .totalAmount(order.getTotalAmount())
-                .createdAt(order.getCreatedAt())
-                .updatedAt(order.getUpdatedAt())
-                .orderItems(orderItemResponseDetails)
-                .build();
-    }
-
-    @Transactional
-    public OrderResponse updateOrderStatus(Long orderId, String newStatus){
-        Order order = orderRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
-
-        order.setStatus(newStatus);
-        order.setUpdatedAt(LocalDateTime.now());
-
-       Order updatedOrder = orderRepository.save(order);
-
-       List<OrderItemResponse> orderItemResponses = orderItemRepository.findByOrder(updatedOrder).stream()
-               .map(
-                       orderItem -> OrderItemResponse.builder()
-                               .orderItemId(orderItem.getOrderItemId())
-                               .price(orderItem.getPrice())
-                               .productId(orderItem.getProduct().getProductId())
-                               .quantity(orderItem.getQuantity())
-                               .build()
-               ).collect(Collectors.toList());
-
-        return OrderResponse.builder()
-                .orderId(updatedOrder.getOrderId())
-                .status(updatedOrder.getStatus())
-                .totalAmount(updatedOrder.getTotalAmount())
-                .createdAt(updatedOrder.getCreatedAt())
-                .updatedAt(updatedOrder.getUpdatedAt())
-                .items(orderItemResponses)
-                .build();
-    }
-
-    @Transactional
-    public void deleteOrder(Long orderId){
-        Order order = orderRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
-
-        orderItemRepository.deleteByOrder(order);
-        orderRepository.delete(order);
-    }
-
 }
