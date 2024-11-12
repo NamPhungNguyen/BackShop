@@ -3,22 +3,17 @@ package com.appshop.back_shop.service;
 import com.appshop.back_shop.domain.CartItem;
 import com.appshop.back_shop.domain.Order;
 import com.appshop.back_shop.domain.OrderItem;
-import com.appshop.back_shop.domain.User;
-import com.appshop.back_shop.dto.request.order.CreateOrderRequest;
 import com.appshop.back_shop.dto.response.order.OrderResponse;
-import com.appshop.back_shop.exception.AppException;
-import com.appshop.back_shop.exception.ErrorCode;
-import com.appshop.back_shop.repository.CartItemRepository;
-import com.appshop.back_shop.repository.OrderItemRepository;
-import com.appshop.back_shop.repository.OrderRepository;
-import com.appshop.back_shop.repository.UserRepository;
+import com.appshop.back_shop.repository.*;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -33,64 +28,69 @@ public class OrderService {
     OrderItemRepository orderItemRepository;
     CartItemRepository cartItemRepository;
     UserRepository userRepository;
+    ShippingAddressRepository shippingAddressRepository;
+    AddressService addressService;
 
-    // Get the user ID from the JWT token
-    private Long getUserIdFromToken() {
+    public Long getUserIdFromToken() {
         JwtAuthenticationToken authenticationToken = (JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
-        return (Long) authenticationToken.getPrincipal();
+        Jwt jwt = (Jwt) authenticationToken.getCredentials();
+        return jwt.getClaim("userId");
     }
 
     @Transactional
-    public OrderResponse createOrder(CreateOrderRequest request) {
-        Long userId = getUserIdFromToken();
+    public OrderResponse createOrder(String paymentMethod) {
+        try {
+            Long userId = getUserIdFromToken();
+            List<CartItem> selectedItems = cartItemRepository.findByCart_User_IdAndCheckedOutTrue(userId);
 
-        // Get user's cart items (Only items marked as checked out)
-        List<CartItem> cartItems = cartItemRepository.findByCart_User_IdAndCheckedOutTrue(userId);
+            if (selectedItems.isEmpty()) {
+                throw new RuntimeException("No items found in cart for checkout.");
+            }
 
-        if (cartItems.isEmpty()) {
-            throw new AppException(ErrorCode.EMPTY_CART);
-        }
+            BigDecimal totalBeforeDiscount = BigDecimal.ZERO;
+            for (CartItem cartItem : selectedItems) {
+                BigDecimal discountPrice = cartItem.getProduct().getPrice()
+                        .multiply(BigDecimal.valueOf(1 - cartItem.getProduct().getDiscount().doubleValue() / 100));
+                BigDecimal totalPrice = discountPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+                totalBeforeDiscount = totalBeforeDiscount.add(totalPrice);
+            }
 
-        // Calculate the total amount before any discounts
-        BigDecimal totalAmount = cartItems.stream()
-                .map(cartItem -> {
-                    BigDecimal discountPrice = cartItem.getProduct().getPrice()
-                            .multiply(BigDecimal.valueOf(1 - cartItem.getProduct().getDiscount().doubleValue() / 100));
-                    return discountPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
-                })
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal discountAmount = BigDecimal.ZERO;
+            BigDecimal totalAfterDiscount = totalBeforeDiscount.subtract(discountAmount);
 
-        // Retrieve the user
-        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-
-        // Create the order object
-        Order order = Order.builder()
-                .user(user)
-                .status("pending") // Status could be "pending", you might change this based on your workflow
-                .totalAmount(totalAmount)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
-
-        // Save the order first and assign the saved order to a variable
-        Order savedOrder = orderRepository.save(order);
-
-        // Create order items for each cart item
-        cartItems.forEach(cartItem -> {
-            OrderItem orderItem = OrderItem.builder()
-                    .order(savedOrder) // Use the saved order here
-                    .product(cartItem.getProduct())
-                    .quantity(cartItem.getQuantity())
-                    .price(cartItem.getProduct().getPrice())
+            Order order = Order.builder()
+                    .user(userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found")))
+                    .status("pending")
+                    .totalAmount(totalAfterDiscount)
+                    .discountAmount(discountAmount)
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
                     .build();
-            orderItemRepository.save(orderItem);
-        });
 
-        // Optionally, mark the cart items as checked out
-        cartItems.forEach(cartItem -> cartItem.setCheckedOut(true));
-        cartItemRepository.saveAll(cartItems);
+            Order savedOrder = orderRepository.save(order);
 
-        // Return a response with the order details
-        return new OrderResponse(savedOrder.getOrderId(), totalAmount, savedOrder.getStatus());
+            selectedItems.forEach(cartItem -> {
+                BigDecimal discountPrice = cartItem.getProduct().getPrice()
+                        .multiply(BigDecimal.valueOf(1 - cartItem.getProduct().getDiscount().doubleValue() / 100));
+                BigDecimal price = discountPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+
+                OrderItem orderItem = OrderItem.builder()
+                        .order(savedOrder)
+                        .product(cartItem.getProduct())
+                        .quantity(cartItem.getQuantity())
+                        .price(price)
+                        .build();
+
+                orderItemRepository.save(orderItem);
+            });
+
+            return new OrderResponse(savedOrder.getOrderId(), totalAfterDiscount, paymentMethod, selectedItems);
+        } catch (Exception e) {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            throw new RuntimeException("Error creating order: " + e.getMessage());
+        }
     }
+
+
+
 }

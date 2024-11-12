@@ -3,7 +3,7 @@ package com.appshop.back_shop.controller;
 import com.appshop.back_shop.domain.Coupon;
 import com.appshop.back_shop.domain.UserCoupon;
 import com.appshop.back_shop.dto.response.ApiResponse;
-import com.appshop.back_shop.dto.response.checkout.ApplyCouponResponse;
+import com.appshop.back_shop.dto.response.checkout.ApplyCouponWithProductsResponse;
 import com.appshop.back_shop.service.CouponService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -39,7 +39,7 @@ public class CouponController {
     }
 
     @PostMapping("/apply-coupon")
-    ApiResponse<ApplyCouponResponse> applyCoupon(@RequestParam String poolCode) {
-        return ApiResponse.<ApplyCouponResponse>builder().code(200).result(couponService.applyCoupon(poolCode)).build();
+    ApiResponse<ApplyCouponWithProductsResponse> applyCoupon(@RequestParam String poolCode) {
+        return ApiResponse.<ApplyCouponWithProductsResponse>builder().code(200).result(couponService.applyCoupon(poolCode)).build();
     }
 }

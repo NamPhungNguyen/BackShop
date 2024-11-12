@@ -1,9 +1,11 @@
 package com.appshop.back_shop.service;
 
+import com.appshop.back_shop.domain.CartItem;
 import com.appshop.back_shop.domain.Coupon;
 import com.appshop.back_shop.domain.User;
 import com.appshop.back_shop.domain.UserCoupon;
-import com.appshop.back_shop.dto.response.checkout.ApplyCouponResponse;
+import com.appshop.back_shop.dto.response.Cart.CartItemResponse;
+import com.appshop.back_shop.dto.response.checkout.ApplyCouponWithProductsResponse;
 import com.appshop.back_shop.exception.AppException;
 import com.appshop.back_shop.exception.ErrorCode;
 import com.appshop.back_shop.repository.CartItemRepository;
@@ -23,6 +25,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -93,22 +97,50 @@ public class CouponService {
         return userCoupon;
     }
 
-    public ApplyCouponResponse applyCoupon(String couponCode) {
+
+    public ApplyCouponWithProductsResponse applyCoupon(String couponCode) {
         Long userId = getUserIdFromToken();
-        // Tính tổng tiền trước khi áp dụng mã giảm giá
-        BigDecimal totalCheckoutPrice = cartItemRepository.findByCart_User_IdAndCheckedOutTrue(userId).stream().map(cartItem -> {
-            BigDecimal discountPrice = cartItem.getProduct().getPrice().multiply(BigDecimal.valueOf(1 - cartItem.getProduct().getDiscount().doubleValue() / 100));
-            return discountPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
-        }).reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Kiểm tra mã giảm giá
-        Coupon coupon = couponRepository.findByCode(couponCode).filter(c -> c.isActive() && LocalDateTime.now().isBefore(c.getExpiryDate()) && c.getRemainingQuantity() > 0).orElseThrow(() -> new AppException(ErrorCode.COUPON_NOT_VALID));
+        // Fetch selected cart items for checkout
+        List<CartItem> selectedItems = cartItemRepository.findByCart_User_IdAndCheckedOutTrue(userId);
 
-        // Áp dụng mã giảm giá vào tổng tiền
+        // Sử dụng AtomicReference cho totalBeforeDiscount để cập nhật trong lambda
+        AtomicReference<BigDecimal> totalBeforeDiscount = new AtomicReference<>(BigDecimal.ZERO);
+
+        List<CartItemResponse> selectedItemResponses = selectedItems.stream().map(cartItem -> {
+            BigDecimal discountPrice = cartItem.getProduct().getPrice()
+                    .multiply(BigDecimal.valueOf(1 - cartItem.getProduct().getDiscount().doubleValue() / 100));
+            BigDecimal totalPrice = discountPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+
+            // Accumulate total price for all selected items
+            totalBeforeDiscount.updateAndGet(v -> v.add(totalPrice));
+
+            return new CartItemResponse(
+                    cartItem.getCartItemId(),
+                    cartItem.getProduct().getProductId(),
+                    cartItem.getProduct().getName(),
+                    !cartItem.getProduct().getImgProduct().isEmpty() ? cartItem.getProduct().getImgProduct().get(0) : null,
+                    cartItem.getProduct().getPrice(),
+                    cartItem.getSize(),
+                    cartItem.getColor(),
+                    cartItem.getQuantity(),
+                    cartItem.getProduct().getDiscount(),
+                    discountPrice,
+                    totalPrice,
+                    cartItem.isCheckedOut()
+            );
+        }).collect(Collectors.toList());
+
+        // Fetch and apply coupon details
+        Coupon coupon = couponRepository.findByCode(couponCode)
+                .filter(c -> c.isActive() && LocalDateTime.now().isBefore(c.getExpiryDate()) && c.getRemainingQuantity() > 0)
+                .orElseThrow(() -> new AppException(ErrorCode.COUPON_NOT_VALID));
         BigDecimal discountAmount = BigDecimal.valueOf(coupon.getDiscountAmount());
-        BigDecimal totalAfterDiscount = totalCheckoutPrice.subtract(discountAmount);
+        BigDecimal totalAfterDiscount = totalBeforeDiscount.get().subtract(discountAmount);
 
-        return new ApplyCouponResponse(totalAfterDiscount, discountAmount, totalCheckoutPrice);
+        // Return the response including both product details and coupon info
+        return new ApplyCouponWithProductsResponse(totalAfterDiscount, discountAmount, totalBeforeDiscount.get(), selectedItemResponses);
     }
+
 
 }

@@ -2,7 +2,6 @@ package com.appshop.back_shop.service;
 
 import com.appshop.back_shop.domain.Category;
 import com.appshop.back_shop.domain.Product;
-import com.appshop.back_shop.dto.request.categories.CategoryRequest;
 import com.appshop.back_shop.dto.request.product.ProductRequest;
 import com.appshop.back_shop.dto.request.product.ProductStockRequest;
 import com.appshop.back_shop.dto.response.Product.ProductLowStockResponse;
