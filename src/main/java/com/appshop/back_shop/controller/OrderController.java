@@ -1,16 +1,14 @@
 package com.appshop.back_shop.controller;
 
+import com.appshop.back_shop.dto.response.ApiResponse;
+import com.appshop.back_shop.dto.response.order.OrderCancelResponse;
 import com.appshop.back_shop.dto.response.order.OrderResponse;
 import com.appshop.back_shop.service.OrderService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/order")
@@ -21,8 +19,15 @@ public class OrderController {
     OrderService orderService;
 
     @PostMapping("/create")
-    public ResponseEntity<OrderResponse> createOrder( @RequestParam String paymentMethod) {
-        OrderResponse orderResponse = orderService.createOrder( paymentMethod);
-        return ResponseEntity.ok(orderResponse);
+    ApiResponse<OrderResponse> createOrder(@RequestParam String paymentMethod, @RequestParam(required = false) String couponCode, @RequestParam Long addressId) {
+        return ApiResponse.<OrderResponse>builder().code(200).result(orderService.createOrder(paymentMethod, couponCode, addressId)).build();
+    }
+
+    @PutMapping("/cancel/{orderId}")
+    ApiResponse<OrderCancelResponse> cancelOrder(@PathVariable Long orderId) {
+        return ApiResponse.<OrderCancelResponse>builder()
+                .result(orderService.cancelOrder(orderId))
+                .code(200)
+                .build();
     }
 }

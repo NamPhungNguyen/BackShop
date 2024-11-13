@@ -1,9 +1,11 @@
 package com.appshop.back_shop.service;
 
-import com.appshop.back_shop.domain.CartItem;
-import com.appshop.back_shop.domain.Order;
-import com.appshop.back_shop.domain.OrderItem;
+import com.appshop.back_shop.domain.*;
+import com.appshop.back_shop.dto.response.Cart.CartItemResponse;
+import com.appshop.back_shop.dto.response.order.OrderCancelResponse;
 import com.appshop.back_shop.dto.response.order.OrderResponse;
+import com.appshop.back_shop.exception.AppException;
+import com.appshop.back_shop.exception.ErrorCode;
 import com.appshop.back_shop.repository.*;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,7 @@ import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -28,8 +31,8 @@ public class OrderService {
     OrderItemRepository orderItemRepository;
     CartItemRepository cartItemRepository;
     UserRepository userRepository;
+    CouponRepository couponRepository;
     ShippingAddressRepository shippingAddressRepository;
-    AddressService addressService;
 
     public Long getUserIdFromToken() {
         JwtAuthenticationToken authenticationToken = (JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
@@ -38,59 +41,105 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderResponse createOrder(String paymentMethod) {
+    public OrderResponse createOrder(String paymentMethod, String couponCode, Long addressId) {
         try {
             Long userId = getUserIdFromToken();
-            List<CartItem> selectedItems = cartItemRepository.findByCart_User_IdAndCheckedOutTrue(userId);
 
+            ShippingAddress shippingAddress = shippingAddressRepository.findById(addressId).orElseThrow(() -> new AppException(ErrorCode.SHIPPING_ADDRESS_NOT_FOUND));
+
+            // Fetch and check cart items for the user
+            List<CartItem> selectedItems = cartItemRepository.findByCart_User_IdAndCheckedOutTrue(userId);
             if (selectedItems.isEmpty()) {
                 throw new RuntimeException("No items found in cart for checkout.");
             }
 
-            BigDecimal totalBeforeDiscount = BigDecimal.ZERO;
-            for (CartItem cartItem : selectedItems) {
-                BigDecimal discountPrice = cartItem.getProduct().getPrice()
-                        .multiply(BigDecimal.valueOf(1 - cartItem.getProduct().getDiscount().doubleValue() / 100));
-                BigDecimal totalPrice = discountPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
-                totalBeforeDiscount = totalBeforeDiscount.add(totalPrice);
+            // Calculate the total amount before discount and each item's discounted price
+            BigDecimal totalBeforeDiscount = selectedItems.stream().map(cartItem -> {
+                BigDecimal discountPrice = cartItem.getProduct().getPrice().multiply(BigDecimal.valueOf(1 - cartItem.getProduct().getDiscount().doubleValue() / 100));
+                return discountPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+            }).reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            // Initialize discountAmount as zero if no coupon code is provided
+            BigDecimal discountAmount = BigDecimal.ZERO;
+
+            // Apply coupon code if provided
+            if (couponCode != null && !couponCode.isEmpty()) {
+                discountAmount = applyDiscountCode(couponCode, totalBeforeDiscount);
             }
 
-            BigDecimal discountAmount = BigDecimal.ZERO;
+            // Calculate total after discount
             BigDecimal totalAfterDiscount = totalBeforeDiscount.subtract(discountAmount);
 
-            Order order = Order.builder()
-                    .user(userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found")))
-                    .status("pending")
-                    .totalAmount(totalAfterDiscount)
-                    .discountAmount(discountAmount)
-                    .createdAt(LocalDateTime.now())
-                    .updatedAt(LocalDateTime.now())
-                    .build();
+            // Build and save the order
+            Order order = Order.builder().user(userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND))).shippingAddress(shippingAddress).status("pending").totalAmount(totalAfterDiscount).discountAmount(discountAmount).createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build();
 
             Order savedOrder = orderRepository.save(order);
 
+            // Convert CartItem to CartItemResponse for the OrderResponse
+            List<CartItemResponse> cartItemResponses = selectedItems.stream().map(cartItem -> {
+                BigDecimal discountPrice = cartItem.getProduct().getPrice().multiply(BigDecimal.valueOf(1 - cartItem.getProduct().getDiscount().doubleValue() / 100));
+                BigDecimal totalPrice = discountPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+
+                return new CartItemResponse(cartItem.getCartItemId(), cartItem.getProduct().getProductId(), cartItem.getProduct().getName(), !cartItem.getProduct().getImgProduct().isEmpty() ? cartItem.getProduct().getImgProduct().get(0) : null, cartItem.getProduct().getPrice(), cartItem.getSize(), cartItem.getColor(), cartItem.getQuantity(), cartItem.getProduct().getDiscount(), discountPrice, totalPrice, cartItem.isCheckedOut());
+            }).collect(Collectors.toList());
+
+            // Create and save order items from cart items
             selectedItems.forEach(cartItem -> {
-                BigDecimal discountPrice = cartItem.getProduct().getPrice()
-                        .multiply(BigDecimal.valueOf(1 - cartItem.getProduct().getDiscount().doubleValue() / 100));
+                BigDecimal discountPrice = cartItem.getProduct().getPrice().multiply(BigDecimal.valueOf(1 - cartItem.getProduct().getDiscount().doubleValue() / 100));
                 BigDecimal price = discountPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
 
-                OrderItem orderItem = OrderItem.builder()
-                        .order(savedOrder)
-                        .product(cartItem.getProduct())
-                        .quantity(cartItem.getQuantity())
-                        .price(price)
-                        .build();
+                OrderItem orderItem = OrderItem.builder().order(savedOrder).product(cartItem.getProduct()).quantity(cartItem.getQuantity()).price(price).build();
 
                 orderItemRepository.save(orderItem);
+                cartItem.setCheckedOut(false);// Persist each order item
             });
 
-            return new OrderResponse(savedOrder.getOrderId(), totalAfterDiscount, paymentMethod, selectedItems);
+            // Return an OrderResponse DTO with the cart items as CartItemResponse
+            return new OrderResponse(savedOrder.getOrderId(), totalAfterDiscount, paymentMethod, cartItemResponses, addressId);
+
         } catch (Exception e) {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             throw new RuntimeException("Error creating order: " + e.getMessage());
         }
     }
 
+    @Transactional
+    public OrderCancelResponse cancelOrder(Long orderId) {
+        try {
+            Long userId = getUserIdFromToken();
+
+            Order order = orderRepository.findById(orderId).filter(o -> o.getUser().getId().equals(userId) && !o.getStatus().equals("cancelled")).orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+
+            order.getShippingAddress().getAddressId();
+
+            if ("completed".equals(order.getStatus())) {
+                throw new AppException(ErrorCode.ORDER_ALREADY_COMPLETED);
+            }
+
+            order.setStatus("cancelled");
+            order.setUpdatedAt(LocalDateTime.now());
+
+            orderRepository.save(order);
+
+            return new OrderCancelResponse(order.getOrderId(), order.getTotalAmount(), order.getStatus(), order.getShippingAddress(), order.getCreatedAt());
+
+        } catch (Exception e) {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            throw new RuntimeException("Error cancelling order: " + e.getMessage());
+        }
+    }
 
 
+    private BigDecimal applyDiscountCode(String couponCode, BigDecimal total) {
+        Coupon coupon = couponRepository.findByCode(couponCode).filter(c -> c.isActive() && LocalDateTime.now().isBefore(c.getExpiryDate()) && c.getRemainingQuantity() > 0).orElseThrow(() -> new AppException(ErrorCode.COUPON_NOT_VALID));
+
+        // Calculate discount amount
+        BigDecimal discountAmount = BigDecimal.valueOf(coupon.getDiscountAmount());
+
+        // Optionally, update remaining quantity if needed
+        coupon.setRemainingQuantity(coupon.getRemainingQuantity() - 1);
+        couponRepository.save(coupon);
+
+        return discountAmount.min(total);
+    }
 }

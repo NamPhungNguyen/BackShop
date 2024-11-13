@@ -1,5 +1,6 @@
 package com.appshop.back_shop.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -13,17 +14,20 @@ import java.math.BigDecimal;
 @Data
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class OrderItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long orderItemId;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY) // Lazy load to reduce data fetching
     @JoinColumn(name = "order_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     Order order;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY) // Lazy load product details
     @JoinColumn(name = "product_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     Product product;
 
     @Column(nullable = false)

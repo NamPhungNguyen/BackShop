@@ -45,20 +45,16 @@ public class CouponService {
 
     @Transactional
     public Coupon createCoupon(Coupon coupon) {
-        // Kiểm tra ngày hết hạn của coupon có hợp lệ
         if (coupon.getExpiryDate().isBefore(LocalDateTime.now())) {
             throw new RuntimeException("Expiry date must be in the future.");
         }
 
-        // Kiểm tra số lượng mã có hợp lệ không
         if (coupon.getTotalQuantity() <= 0) {
             throw new RuntimeException("Total quantity must be greater than zero.");
         }
 
-        // Thiết lập số lượng còn lại ban đầu bằng với tổng số lượng
         coupon.setRemainingQuantity(coupon.getTotalQuantity());
 
-        // Kích hoạt coupon và lưu coupon vào cơ sở dữ liệu
         coupon.setActive(true);
 
         return couponRepository.save(coupon);
@@ -101,10 +97,8 @@ public class CouponService {
     public ApplyCouponWithProductsResponse applyCoupon(String couponCode) {
         Long userId = getUserIdFromToken();
 
-        // Fetch selected cart items for checkout
         List<CartItem> selectedItems = cartItemRepository.findByCart_User_IdAndCheckedOutTrue(userId);
 
-        // Sử dụng AtomicReference cho totalBeforeDiscount để cập nhật trong lambda
         AtomicReference<BigDecimal> totalBeforeDiscount = new AtomicReference<>(BigDecimal.ZERO);
 
         List<CartItemResponse> selectedItemResponses = selectedItems.stream().map(cartItem -> {
@@ -131,16 +125,12 @@ public class CouponService {
             );
         }).collect(Collectors.toList());
 
-        // Fetch and apply coupon details
         Coupon coupon = couponRepository.findByCode(couponCode)
                 .filter(c -> c.isActive() && LocalDateTime.now().isBefore(c.getExpiryDate()) && c.getRemainingQuantity() > 0)
                 .orElseThrow(() -> new AppException(ErrorCode.COUPON_NOT_VALID));
         BigDecimal discountAmount = BigDecimal.valueOf(coupon.getDiscountAmount());
         BigDecimal totalAfterDiscount = totalBeforeDiscount.get().subtract(discountAmount);
 
-        // Return the response including both product details and coupon info
         return new ApplyCouponWithProductsResponse(totalAfterDiscount, discountAmount, totalBeforeDiscount.get(), selectedItemResponses);
     }
-
-
 }

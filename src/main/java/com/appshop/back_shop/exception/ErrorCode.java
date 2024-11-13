@@ -43,6 +43,7 @@ public enum ErrorCode {
     COUPON_OUT_OF_STOCK(1033, "No coupons remaining for this pool code", HttpStatus.BAD_REQUEST),
     COUPON_ALREADY_CLAIMED(1034, "User has already claimed this coupon", HttpStatus.BAD_REQUEST),
     EMPTY_CART(1034, "empty cart", HttpStatus.BAD_REQUEST),
+    ORDER_ALREADY_COMPLETED(1035, "Order has already been completed, cannot cancel.", HttpStatus.BAD_REQUEST),
 
     ;
 

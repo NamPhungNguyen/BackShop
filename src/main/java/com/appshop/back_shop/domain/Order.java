@@ -1,5 +1,6 @@
 package com.appshop.back_shop.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -14,17 +15,22 @@ import java.time.LocalDateTime;
 @Data
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long orderId;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     User user;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "address_id", nullable = false)
+    ShippingAddress shippingAddress;
+
     @Column(nullable = false)
-    String status; // 'pending', 'completed', 'cancelled'
+    String status; // 'pending', 'processing', 'shipped', 'completed', 'cancelled'
 
     @Column(nullable = false)
     BigDecimal totalAmount;
