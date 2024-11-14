@@ -129,6 +129,143 @@ public class OrderService {
         }
     }
 
+    @Transactional
+    public OrderResponse updateOrderStatus(Long orderId, String newStatus) {
+        try {
+            Long userId = getUserIdFromToken();
+
+            // Fetch the order by ID and validate if the user is the owner of the order
+            Order order = orderRepository.findById(orderId)
+                    .filter(o -> o.getUser().getId().equals(userId))
+                    .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+
+            // Ensure the new status is valid
+            List<String> validStatuses = List.of("pending", "processing", "shipped", "completed", "cancelled");
+            if (!validStatuses.contains(newStatus)) {
+                throw new AppException(ErrorCode.INVALID_ORDER_STATUS);
+            }
+
+            // Do not allow status update if the order is already completed or cancelled
+            if ("completed".equals(order.getStatus()) || "cancelled".equals(order.getStatus())) {
+                throw new AppException(ErrorCode.ORDER_ALREADY_COMPLETED);
+            }
+
+            // Update the order status and save
+            order.setStatus(newStatus);
+            order.setUpdatedAt(LocalDateTime.now());
+            Order updatedOrder = orderRepository.save(order);
+
+            // Fetch the order items associated with the updated order
+            List<OrderItem> orderItems = orderItemRepository.findByOrder(order);
+            List<CartItemResponse> cartItemResponses = mapOrderItemsToCartResponses(orderItems);
+
+            // Return an OrderResponse with updated status and other details
+            return new OrderResponse(
+                    updatedOrder.getOrderId(),
+                    updatedOrder.getTotalAmount(),
+                    updatedOrder.getStatus(),
+                    cartItemResponses,
+                    updatedOrder.getShippingAddress().getAddressId()
+            );
+
+        } catch (AppException e) {
+            // Rethrow known exceptions
+            throw e;
+        } catch (Exception e) {
+            // Rollback transaction on any exception
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            throw new RuntimeException("Error updating order status: " + e.getMessage());
+        }
+    }
+
+    @Transactional
+    public List<OrderResponse> getCompletedOrdersByUser() {
+        try {
+            Long userId = getUserIdFromToken(); // Lấy userId từ token
+
+            // Tìm tất cả các đơn hàng của người dùng với trạng thái "completed"
+            List<Order> completedOrders = orderRepository.findByUser_IdAndStatus(userId, "completed");
+
+            if (completedOrders.isEmpty()) {
+                throw new AppException(ErrorCode.ORDER_NOT_FOUND); // Nếu không có đơn hàng nào
+            }
+
+            // Chuyển đổi danh sách Order thành OrderResponse
+            return completedOrders.stream()
+                    .map(order -> {
+                        List<OrderItem> orderItems = orderItemRepository.findByOrder(order);
+                        List<CartItemResponse> cartItemResponses = mapOrderItemsToCartResponses(orderItems);
+
+                        return new OrderResponse(
+                                order.getOrderId(),
+                                order.getTotalAmount(),
+                                order.getStatus(),
+                                cartItemResponses,
+                                order.getShippingAddress().getAddressId()
+                        );
+                    })
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            throw new RuntimeException("Error retrieving completed orders: " + e.getMessage());
+        }
+    }
+
+    @Transactional
+    public List<OrderResponse> getNotCompletedOrdersByUser() {
+        try {
+            // Tìm tất cả các đơn hàng chưa hoàn thành của người dùng
+            List<Order> notCompletedOrders = orderRepository.findByUser_IdAndStatusNot(getUserIdFromToken(), "completed");
+
+            if (notCompletedOrders.isEmpty()) {
+                throw new AppException(ErrorCode.ORDER_NOT_FOUND); // Nếu không có đơn hàng nào
+            }
+
+            // Chuyển đổi danh sách Order thành OrderResponse
+            return notCompletedOrders.stream()
+                    .map(order -> {
+                        // Lấy các OrderItems liên quan đến đơn hàng
+                        List<OrderItem> orderItems = orderItemRepository.findByOrder(order);
+
+                        // Chuyển đổi các OrderItems thành CartItemResponse
+                        List<CartItemResponse> cartItemResponses = mapOrderItemsToCartResponses(orderItems);
+
+                        // Tạo OrderResponse và trả về
+                        return new OrderResponse(
+                                order.getOrderId(),
+                                order.getTotalAmount(),
+                                order.getStatus(),
+                                cartItemResponses,
+                                order.getShippingAddress().getAddressId()
+                        );
+                    })
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            throw new RuntimeException("Error retrieving not completed orders: " + e.getMessage());
+        }
+    }
+
+
+    private List<CartItemResponse> mapOrderItemsToCartResponses(List<OrderItem> orderItems) {
+        return orderItems.stream().map(orderItem -> {
+            Product product = orderItem.getProduct();
+            return new CartItemResponse(
+                    null,  // No CartItemId, since this is coming from the order
+                    product.getProductId(),
+                    product.getName(),
+                    !product.getImgProduct().isEmpty() ? product.getImgProduct().get(0) : null,
+                    product.getPrice(),
+                    null,  // No size info in the order, adjust if needed
+                    null,  // No color info in the order, adjust if needed
+                    orderItem.getQuantity(),
+                    product.getDiscount(),
+                    orderItem.getPrice(),
+                    orderItem.getPrice(),  // Assuming same for final price and discounted price
+                    true  // Checked out = true, since it's an order
+            );
+        }).collect(Collectors.toList());
+    }
+
+
 
     private BigDecimal applyDiscountCode(String couponCode, BigDecimal total) {
         Coupon coupon = couponRepository.findByCode(couponCode).filter(c -> c.isActive() && LocalDateTime.now().isBefore(c.getExpiryDate()) && c.getRemainingQuantity() > 0).orElseThrow(() -> new AppException(ErrorCode.COUPON_NOT_VALID));

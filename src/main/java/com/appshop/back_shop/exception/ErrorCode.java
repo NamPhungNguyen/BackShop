@@ -44,6 +44,7 @@ public enum ErrorCode {
     COUPON_ALREADY_CLAIMED(1034, "User has already claimed this coupon", HttpStatus.BAD_REQUEST),
     EMPTY_CART(1034, "empty cart", HttpStatus.BAD_REQUEST),
     ORDER_ALREADY_COMPLETED(1035, "Order has already been completed, cannot cancel.", HttpStatus.BAD_REQUEST),
+    INVALID_ORDER_STATUS(1036, "Invalid order status", HttpStatus.BAD_REQUEST),
 
     ;
 

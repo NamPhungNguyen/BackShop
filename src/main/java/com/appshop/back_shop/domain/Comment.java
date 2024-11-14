@@ -26,19 +26,19 @@ public class Comment {
     Long commentId;
 
     @Column(nullable = false, columnDefinition = "TEXT")
-    String content; // Nội dung bình luận
+    String content;
 
     @Column(nullable = true)
-    Integer rating; // Điểm đánh giá (1-5 sao), có thể null nếu không đánh giá
+    Integer rating;
 
     @ElementCollection
     @CollectionTable(name = "comment_images", joinColumns = @JoinColumn(name = "comment_id"))
     @Column(name = "img_url")
-    List<String> imageUrls; // Danh sách URL ảnh bình luận
+    List<String> imageUrls;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
-    private Product product; // Sản phẩm mà bình luận thuộc về
+    private Product product;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
