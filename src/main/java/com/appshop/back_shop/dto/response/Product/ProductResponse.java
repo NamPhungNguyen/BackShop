@@ -24,6 +24,7 @@ public class ProductResponse {
     boolean isAvailable;
     double rating;
     int ratingCount;
+    int commentCount;
     String brand;
     String productCode;
     List<String> imgProduct;

@@ -43,24 +43,6 @@ public class ProductController {
                 .build();
     }
 
-    @GetMapping("/get-by-id/{productId}")
-    ApiResponse<ProductResponse> fetchProductById(@PathVariable("productId") Long id){
-        return ApiResponse.<ProductResponse>builder()
-                .result(productService.fetchProductId(id))
-                .code(200)
-                .message("Get product by Id successful")
-                .build();
-    }
-
-    @GetMapping("/name/{productName}")
-    ApiResponse<ProductResponse> fetchProductByName(@PathVariable("productName") String name){
-        return ApiResponse.<ProductResponse>builder()
-                .result(productService.fetchProductName(name))
-                .code(200)
-                .message("Get product by name succesful")
-                .build();
-    }
-
     @PutMapping("/update/{productId}")
     ApiResponse<ProductResponse> updateProductId(@PathVariable("productId") Long id, @RequestBody ProductRequest request){
         return ApiResponse.<ProductResponse>builder()
@@ -78,37 +60,4 @@ public class ProductController {
                 .code(200)
                 .build();
     }
-
-    @PutMapping("/{productId}/stock")
-    public ApiResponse<ProductStockResponse> updateStock(@PathVariable Long productId, @RequestBody ProductStockRequest request){
-        return ApiResponse.<ProductStockResponse>builder()
-                .code(200)
-                .message("Stock updated successfully")
-                .result(productService.updateStock(productId, request))
-                .build();
-    }
-
-    @GetMapping("/low-stock")
-    public ApiResponse<List<ProductLowStockResponse>> fetchLowStockProducts(@RequestParam(defaultValue = "10") int threshold){
-        return ApiResponse.<List<ProductLowStockResponse>>builder()
-                .code(200)
-                .message("Low stock products retrieved successfully")
-                .result(productService.fetchAllLowProducts(threshold))
-                .build();
-    }
-
-    @GetMapping("/with-categories")
-    public List<ProductWithCategoryResponse> getProductsWithCategories(@RequestParam Long categoryId) {
-        return productService.fetchProductsWithCategories(categoryId);
-    }
-
-    @GetMapping("/by-price-range")
-    public ApiResponse<List<ProductResponse>> fetchProductsByPriceRange(@RequestParam BigDecimal minPrice, @RequestParam BigDecimal maxPrice){
-        return ApiResponse.<List<ProductResponse>>builder()
-                .result(productService.fetchProductsByPriceRange(minPrice, maxPrice))
-                .code(200)
-                .message("Products fetched successfully by price range")
-                .build();
-    }
-
 }

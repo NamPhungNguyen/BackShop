@@ -80,24 +80,11 @@ public class ProductService {
     }
 
     public List<ProductResponse> getListProduct() {
-        return productRepository.findAll().stream()
-                .map(productMapper::toProductResponse).toList();
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
-    public ProductResponse fetchProductId(Long id) {
-        Product product = productRepository.findByProductId(id)
-                .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_EXISTED));
-
-        return productMapper.toProductResponse(product);
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
-    public ProductResponse fetchProductName(String name) {
-        Product product = productRepository.findByName(name)
-                .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_EXISTED));
-
-        return productMapper.toProductResponse(product);
+        List<ProductResponse> products = productRepository.findAll().stream()
+                .map(productMapper::toProductResponse)
+                .toList();
+        products.forEach(p -> System.out.println("Product ID: " + p.getProductId() + ", Comment Count: " + p.getCommentCount()));
+        return products;
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -127,64 +114,5 @@ public class ProductService {
     @PreAuthorize("hasRole('ADMIN')")
     public void deleteProduct(Long id) {
         productRepository.deleteById(id);
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
-    public ProductStockResponse updateStock(Long productId, ProductStockRequest request) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_EXISTED));
-
-        int oldStock = product.getStock();
-        int newStock = oldStock + request.getQuantity();
-
-        if (newStock < 0)
-            throw new AppException(ErrorCode.STOCK_NOT_VALID);
-
-        product.setStock(newStock);
-
-        productRepository.save(product);
-
-        return ProductStockResponse.builder()
-                .productId(product.getProductId())
-                .oldStock(oldStock)
-                .newStock(newStock)
-                .build();
-    }
-
-
-    // fetch cac san pham co stock sap het hang
-    @PreAuthorize("hasRole('ADMIN')")
-    public List<ProductLowStockResponse> fetchAllLowProducts(int threshold) {
-        List<Product> products = productRepository.findByStockLessThan(threshold);
-        return products.stream().map(product ->
-                ProductLowStockResponse.builder()
-                        .productId(product.getProductId())
-                        .productName(product.getName())
-                        .stock(product.getStock())
-                        .build()).collect(Collectors.toList());
-    }
-
-    public List<ProductWithCategoryResponse> fetchProductsWithCategories(Long categoryId) {
-        List<Product> products = productRepository.findByCategory_CategoryId(categoryId);
-        return products.stream()
-                .map(product -> ProductWithCategoryResponse.builder()
-                        .productId(product.getProductId())
-                        .productName(product.getName())
-                        .description(product.getDescription())
-                        .price(product.getPrice())
-                        .stock(product.getStock())
-                        .size(product.getSize())
-                        .color(product.getColor())
-                        .imgProduct(product.getImgProduct())
-                        .categoryName(product.getCategory().getName())
-                        .build())
-                .collect(Collectors.toList());
-    }
-
-    public List<ProductResponse> fetchProductsByPriceRange(BigDecimal minPrice, BigDecimal maxPrice) {
-        List<Product> products = productRepository.findByPriceBetween(minPrice, maxPrice);
-        return products.stream()
-                .map(productMapper::toProductResponse)
-                .collect(Collectors.toList());
     }
 }

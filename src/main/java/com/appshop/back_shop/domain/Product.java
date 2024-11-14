@@ -60,6 +60,8 @@ public class Product {
     @Column
     int ratingCount = 0;
 
+    int commentCount = 0;
+
     @Column
     String brand;
 

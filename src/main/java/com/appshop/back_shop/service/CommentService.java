@@ -4,6 +4,8 @@ import com.appshop.back_shop.domain.Comment;
 import com.appshop.back_shop.domain.Product;
 import com.appshop.back_shop.domain.User;
 import com.appshop.back_shop.dto.response.comment.CommentResponse;
+import com.appshop.back_shop.exception.AppException;
+import com.appshop.back_shop.exception.ErrorCode;
 import com.appshop.back_shop.mapper.CommentMapper;
 import com.appshop.back_shop.repository.CommentRepository;
 import com.appshop.back_shop.repository.ProductRepository;
@@ -36,24 +38,17 @@ public class CommentService {
     }
 
     public List<CommentResponse> getCommentsByProduct(Long productId) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+        Product product = productRepository.findById(productId).orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_EXISTED));
 
-        // Fetch all comments related to the product
         List<Comment> comments = commentRepository.findByProduct(product);
 
-        // Map each Comment entity to CommentResponse using the CommentMapper
-        return comments.stream()
-                .map(commentMapper::toResponse)
-                .collect(Collectors.toList());
+        return comments.stream().map(commentMapper::toResponse).collect(Collectors.toList());
     }
 
 
     public void addComment(Long productId, String content, Integer rating, List<String> imageUrls) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
-        User user = userRepository.findById(getUserIdFromToken())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        Product product = productRepository.findById(productId).orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_EXISTED));
+        User user = userRepository.findById(getUserIdFromToken()).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         Comment comment = new Comment();
         comment.setContent(content);
@@ -63,13 +58,13 @@ public class CommentService {
         comment.setUser(user);
 
         commentRepository.save(comment);
-
+        product.setCommentCount(product.getCommentCount() + 1);
+        productRepository.save(product);
         recalculateProductRating(product);
     }
 
     public void editComment(Long commentId, String content, Integer rating, List<String> imageUrls) {
-        Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new RuntimeException("Comment not found"));
+        Comment comment = commentRepository.findById(commentId).orElseThrow(() -> new RuntimeException("Comment not found"));
 
         if (!comment.getUser().getId().equals(getUserIdFromToken())) {
             throw new RuntimeException("You are not authorized to edit this comment");
@@ -85,14 +80,17 @@ public class CommentService {
     }
 
     public void deleteComment(Long commentId) {
-        Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new RuntimeException("Comment not found"));
+        Comment comment = commentRepository.findById(commentId).orElseThrow(() -> new RuntimeException("Comment not found"));
 
         if (!comment.getUser().getId().equals(getUserIdFromToken())) {
             throw new RuntimeException("You are not authorized to delete this comment");
         }
 
+        Product product = comment.getProduct();
+
         commentRepository.delete(comment);
+        product.setCommentCount(product.getCommentCount() - 1);
+        productRepository.save(product);
 
         recalculateProductRating(comment.getProduct());
     }

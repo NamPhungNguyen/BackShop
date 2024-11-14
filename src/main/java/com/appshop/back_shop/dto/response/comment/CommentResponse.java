@@ -18,6 +18,8 @@ public class CommentResponse {
     List<String> imageUrls;
     Long productId;
     Long userId;
+    String fullName;
+    String profileImgUrl;
     LocalDateTime createdAt;
     LocalDateTime updateAt;
 }

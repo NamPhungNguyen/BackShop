@@ -10,12 +10,7 @@ import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
 public interface ProductMapper {
-    @Mapping(source = "categoryId", target = "category", ignore = true)
-    Product toProduct(ProductRequest request);
-
     @Mapping(source = "category.categoryId", target = "categoryId")
     @Mapping(source = "category.name", target = "categoryName")
     ProductResponse toProductResponse(Product request);
-
-    void updateProduct(@MappingTarget Product product, ProductRequest request);
 }
