@@ -2,6 +2,7 @@ package com.appshop.back_shop.service;
 
 import com.appshop.back_shop.domain.Category;
 import com.appshop.back_shop.domain.Product;
+import com.appshop.back_shop.dto.request.product.ProductFilter;
 import com.appshop.back_shop.dto.request.product.ProductRequest;
 import com.appshop.back_shop.dto.response.Product.ProductResponse;
 import com.appshop.back_shop.exception.AppException;
@@ -66,6 +67,35 @@ public class ProductService {
 
         return products.stream().map(productMapper::toProductResponse).collect(Collectors.toList());
     }
+
+    public List<ProductResponse> searchAndFilterProducts(ProductFilter filter) {
+        // Build the query with dynamic filters
+        if (filter == null) {
+            return productRepository.findAll().stream()
+                    .map(productMapper::toProductResponse)
+                    .collect(Collectors.toList());
+        }
+
+        // Filter by product name
+        if (filter.getName() != null) {
+            return productRepository.findByNameContaining(filter.getName()).stream()
+                    .map(productMapper::toProductResponse)
+                    .collect(Collectors.toList());
+        }
+
+        // Filter by price range
+        if (filter.getPriceMin() != null && filter.getPriceMax() != null) {
+            return productRepository.findByPriceBetween(filter.getPriceMin(), filter.getPriceMax()).stream()
+                    .map(productMapper::toProductResponse)
+                    .collect(Collectors.toList());
+        }
+
+        // Default: return all products
+        return productRepository.findAll().stream()
+                .map(productMapper::toProductResponse)
+                .collect(Collectors.toList());
+    }
+
 
     @PreAuthorize("hasRole('ADMIN')")
     public ProductResponse updateProductId(Long id, ProductRequest request) {
