@@ -1,20 +1,18 @@
 package com.appshop.back_shop.controller;
 
 import com.appshop.back_shop.dto.request.product.ProductRequest;
-import com.appshop.back_shop.dto.request.product.ProductStockRequest;
 import com.appshop.back_shop.dto.response.ApiResponse;
-import com.appshop.back_shop.dto.response.Product.ProductLowStockResponse;
 import com.appshop.back_shop.dto.response.Product.ProductResponse;
-import com.appshop.back_shop.dto.response.Product.ProductStockResponse;
-import com.appshop.back_shop.dto.response.Product.ProductWithCategoryResponse;
 import com.appshop.back_shop.service.ProductService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -26,7 +24,7 @@ public class ProductController {
     ProductService productService;
 
     @PostMapping("/create")
-    ApiResponse<ProductResponse> createProduct(@RequestBody ProductRequest request){
+    ApiResponse<ProductResponse> createProduct(@RequestBody ProductRequest request) {
         return ApiResponse.<ProductResponse>builder()
                 .result(productService.createProduct(request))
                 .code(200)
@@ -35,7 +33,7 @@ public class ProductController {
     }
 
     @GetMapping("/list")
-    ApiResponse<List<ProductResponse>> fetchAllProducts(){
+    ApiResponse<List<ProductResponse>> fetchAllProducts() {
         return ApiResponse.<List<ProductResponse>>builder()
                 .result(productService.getListProduct())
                 .code(200)
@@ -43,8 +41,16 @@ public class ProductController {
                 .build();
     }
 
+    @GetMapping("/list-product-category/{categoryId}")
+    ApiResponse<List<ProductResponse>> fetchAllProductByCategory(@PathVariable("categoryId") Long categoryId) {
+        return ApiResponse.<List<ProductResponse>>builder()
+                .result(productService.getListProductByCategory(categoryId))
+                .code(200)
+                .build();
+    }
+
     @PutMapping("/update/{productId}")
-    ApiResponse<ProductResponse> updateProductId(@PathVariable("productId") Long id, @RequestBody ProductRequest request){
+    ApiResponse<ProductResponse> updateProductId(@PathVariable("productId") Long id, @RequestBody ProductRequest request) {
         return ApiResponse.<ProductResponse>builder()
                 .result(productService.updateProductId(id, request))
                 .code(200)
@@ -52,8 +58,17 @@ public class ProductController {
                 .build();
     }
 
+    @GetMapping("/products")
+    public Page<ProductResponse> getProducts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "2") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return productService.getPagedProducts(pageable);
+    }
+
+
     @DeleteMapping("/delete/{productId}")
-    ApiResponse<Void> deleteProduct(@PathVariable("productId") Long id){
+    ApiResponse<Void> deleteProduct(@PathVariable("productId") Long id) {
         productService.deleteProduct(id);
         return ApiResponse.<Void>builder()
                 .message("Product deleted successful")

@@ -7,7 +7,9 @@ import com.appshop.back_shop.dto.response.Product.ProductResponse;
 import com.appshop.back_shop.repository.FavoriteRepository;
 import com.appshop.back_shop.repository.ProductRepository;
 import com.appshop.back_shop.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -18,16 +20,15 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class FavoriteService {
 
-    @Autowired
-    private FavoriteRepository favoriteRepository;
+    FavoriteRepository favoriteRepository;
 
-    @Autowired
-    private ProductRepository productRepository;
+    ProductRepository productRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    UserRepository userRepository;
 
     public Long getUserIdFromToken() {
         JwtAuthenticationToken authenticationToken = (JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
@@ -48,36 +49,15 @@ public class FavoriteService {
         Product product = productRepository.findById(productId).orElseThrow(() -> new RuntimeException("Product not found"));
         favoriteRepository.deleteByUserAndProduct(user, product);
     }
+
     @Transactional(readOnly = true)
     public List<ProductResponse> getFavoriteProducts() {
         User user = userRepository.findById(getUserIdFromToken()).orElseThrow(() -> new RuntimeException("User not found"));
 
-        return favoriteRepository.findAllByUser(user).stream()
-                .map(favorite -> {
-                    Product product = favorite.getProduct();
-                    return ProductResponse.builder()
-                            .productId(product.getProductId())
-                            .name(product.getName())
-                            .description(product.getDescription())
-                            .price(product.getPrice())
-                            .discount(product.getDiscount())
-                            .stock(product.getStock())
-                            .size(product.getSize())
-                            .color(product.getColor())
-                            .isAvailable(product.isAvailable())
-                            .rating(product.getRating())
-                            .ratingCount(product.getRatingCount())
-                            .brand(product.getBrand())
-                            .productCode(product.getProductCode())
-                            .imgProduct(product.getImgProduct())
-                            .categoryId(product.getCategory().getCategoryId())
-                            .categoryName(product.getCategory().getName())
-                            .createdAt(product.getCreatedAt())
-                            .updatedAt(product.getUpdatedAt())
-                            .build();
-                })
-                .collect(Collectors.toList());
+        return favoriteRepository.findAllByUser(user).stream().map(favorite -> {
+            Product product = favorite.getProduct();
+            return ProductResponse.builder().productId(product.getProductId()).name(product.getName()).description(product.getDescription()).price(product.getPrice()).discount(product.getDiscount()).stock(product.getStock()).size(product.getSize()).color(product.getColor()).isAvailable(product.isAvailable()).rating(product.getRating()).ratingCount(product.getRatingCount()).brand(product.getBrand()).productCode(product.getProductCode()).imgProduct(product.getImgProduct()).categoryId(product.getCategory().getCategoryId()).categoryName(product.getCategory().getName()).createdAt(product.getCreatedAt()).updatedAt(product.getUpdatedAt()).build();
+        }).collect(Collectors.toList());
     }
-
 
 }

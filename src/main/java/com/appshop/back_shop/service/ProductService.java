@@ -3,11 +3,7 @@ package com.appshop.back_shop.service;
 import com.appshop.back_shop.domain.Category;
 import com.appshop.back_shop.domain.Product;
 import com.appshop.back_shop.dto.request.product.ProductRequest;
-import com.appshop.back_shop.dto.request.product.ProductStockRequest;
-import com.appshop.back_shop.dto.response.Product.ProductLowStockResponse;
 import com.appshop.back_shop.dto.response.Product.ProductResponse;
-import com.appshop.back_shop.dto.response.Product.ProductStockResponse;
-import com.appshop.back_shop.dto.response.Product.ProductWithCategoryResponse;
 import com.appshop.back_shop.exception.AppException;
 import com.appshop.back_shop.exception.ErrorCode;
 import com.appshop.back_shop.mapper.ProductMapper;
@@ -20,7 +16,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,65 +36,44 @@ public class ProductService {
             throw new AppException(ErrorCode.PRODUCT_EXISTED);
         }
 
-        Category category = categoryRepository.findByCategoryId(request.getCategoryId())
-                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_EXISTED));
+        Category category = categoryRepository.findByCategoryId(request.getCategoryId()).orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_EXISTED));
 
 
-        Product product = Product.builder()
-                .name(request.getName())
-                .description(request.getDescription())
-                .price(request.getPrice())
-                .stock(request.getStock())
-                .size(request.getSize())
-                .color(request.getColor())
-                .brand(request.getBrand())
-                .imgProduct(request.getImgProduct())
-                .category(category)
-                .build();
+        Product product = Product.builder().name(request.getName()).description(request.getDescription()).price(request.getPrice()).stock(request.getStock()).size(request.getSize()).color(request.getColor()).brand(request.getBrand()).imgProduct(request.getImgProduct()).category(category).build();
 
 
         Product savedProduct = productRepository.save(product);
 
-        return ProductResponse.builder()
-                .productId(savedProduct.getProductId())
-                .name(savedProduct.getName())
-                .description(savedProduct.getDescription())
-                .price(savedProduct.getPrice())
-                .discount(savedProduct.getDiscount())
-                .stock(savedProduct.getStock())
-                .size(savedProduct.getSize())
-                .color(savedProduct.getColor())
-                .isAvailable(savedProduct.isAvailable())
-                .rating(savedProduct.getRating())
-                .ratingCount(savedProduct.getRatingCount())
-                .brand(savedProduct.getBrand())
-                .productCode(savedProduct.getProductCode())
-                .imgProduct(savedProduct.getImgProduct())
-                .categoryId(category.getCategoryId())
-                .categoryName(category.getName())
-                .createdAt(savedProduct.getCreatedAt())
-                .updatedAt(savedProduct.getUpdatedAt())
-                .build();
+        return ProductResponse.builder().productId(savedProduct.getProductId()).name(savedProduct.getName()).description(savedProduct.getDescription()).price(savedProduct.getPrice()).discount(savedProduct.getDiscount()).stock(savedProduct.getStock()).size(savedProduct.getSize()).color(savedProduct.getColor()).isAvailable(savedProduct.isAvailable()).rating(savedProduct.getRating()).ratingCount(savedProduct.getRatingCount()).brand(savedProduct.getBrand()).productCode(savedProduct.getProductCode()).imgProduct(savedProduct.getImgProduct()).categoryId(category.getCategoryId()).categoryName(category.getName()).createdAt(savedProduct.getCreatedAt()).updatedAt(savedProduct.getUpdatedAt()).build();
     }
 
     public List<ProductResponse> getListProduct() {
-        List<ProductResponse> products = productRepository.findAll().stream()
-                .map(productMapper::toProductResponse)
-                .toList();
+        List<ProductResponse> products = productRepository.findAll().stream().map(productMapper::toProductResponse).toList();
         products.forEach(p -> System.out.println("Product ID: " + p.getProductId() + ", Comment Count: " + p.getCommentCount()));
         return products;
     }
 
+    public Page<ProductResponse> getPagedProducts(Pageable pageable) {
+        return productRepository.findAll(pageable)
+                .map(product -> productMapper.toProductResponse(product));
+    }
+
+
+    public List<ProductResponse> getListProductByCategory(Long categoryId) {
+        Category category = categoryRepository.findByCategoryId(categoryId).orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_EXISTED));
+
+        List<Product> products = productRepository.findByCategory(category);
+
+        return products.stream().map(productMapper::toProductResponse).collect(Collectors.toList());
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     public ProductResponse updateProductId(Long id, ProductRequest request) {
-        Product product = productRepository.findByProductId(id)
-                .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_EXISTED));
+        Product product = productRepository.findByProductId(id).orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_EXISTED));
 
-        if (productRepository.existsByName(request.getName()))
-            throw new AppException(ErrorCode.PRODUCT_EXISTED);
+        if (productRepository.existsByName(request.getName())) throw new AppException(ErrorCode.PRODUCT_EXISTED);
 
-        Category category = categoryRepository.findByCategoryId(request.getCategoryId())
-                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_EXISTED));
+        Category category = categoryRepository.findByCategoryId(request.getCategoryId()).orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_EXISTED));
 
         product.setName(request.getName());
         product.setDescription(request.getDescription());

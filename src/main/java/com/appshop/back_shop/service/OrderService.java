@@ -45,9 +45,10 @@ public class OrderService {
         try {
             Long userId = getUserIdFromToken();
 
-            ShippingAddress shippingAddress = shippingAddressRepository.findById(addressId).orElseThrow(() -> new AppException(ErrorCode.SHIPPING_ADDRESS_NOT_FOUND));
+            ShippingAddress shippingAddress = shippingAddressRepository.findById(addressId)
+                    .orElseThrow(() -> new AppException(ErrorCode.SHIPPING_ADDRESS_NOT_FOUND));
 
-            // Fetch and check cart items for the user
+            // Fetch and check cart items for the user, only the selected (checked-out) ones
             List<CartItem> selectedItems = cartItemRepository.findByCart_User_IdAndCheckedOutTrue(userId);
             if (selectedItems.isEmpty()) {
                 throw new RuntimeException("No items found in cart for checkout.");
@@ -55,7 +56,8 @@ public class OrderService {
 
             // Calculate the total amount before discount and each item's discounted price
             BigDecimal totalBeforeDiscount = selectedItems.stream().map(cartItem -> {
-                BigDecimal discountPrice = cartItem.getProduct().getPrice().multiply(BigDecimal.valueOf(1 - cartItem.getProduct().getDiscount().doubleValue() / 100));
+                BigDecimal discountPrice = cartItem.getProduct().getPrice()
+                        .multiply(BigDecimal.valueOf(1 - cartItem.getProduct().getDiscount().doubleValue() / 100));
                 return discountPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
             }).reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -71,27 +73,62 @@ public class OrderService {
             BigDecimal totalAfterDiscount = totalBeforeDiscount.subtract(discountAmount);
 
             // Build and save the order
-            Order order = Order.builder().user(userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND))).shippingAddress(shippingAddress).status("pending").totalAmount(totalAfterDiscount).discountAmount(discountAmount).createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build();
+            Order order = Order.builder()
+                    .user(userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND)))
+                    .shippingAddress(shippingAddress)
+                    .status("pending")
+                    .totalAmount(totalAfterDiscount)
+                    .discountAmount(discountAmount)
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
 
             Order savedOrder = orderRepository.save(order);
 
             // Convert CartItem to CartItemResponse for the OrderResponse
             List<CartItemResponse> cartItemResponses = selectedItems.stream().map(cartItem -> {
-                BigDecimal discountPrice = cartItem.getProduct().getPrice().multiply(BigDecimal.valueOf(1 - cartItem.getProduct().getDiscount().doubleValue() / 100));
+                BigDecimal discountPrice = cartItem.getProduct().getPrice()
+                        .multiply(BigDecimal.valueOf(1 - cartItem.getProduct().getDiscount().doubleValue() / 100));
                 BigDecimal totalPrice = discountPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
 
-                return new CartItemResponse(cartItem.getCartItemId(), cartItem.getProduct().getProductId(), cartItem.getProduct().getName(), !cartItem.getProduct().getImgProduct().isEmpty() ? cartItem.getProduct().getImgProduct().get(0) : null, cartItem.getProduct().getPrice(), cartItem.getSize(), cartItem.getColor(), cartItem.getQuantity(), cartItem.getProduct().getDiscount(), discountPrice, totalPrice, cartItem.isCheckedOut());
+                return new CartItemResponse(
+                        cartItem.getCartItemId(),
+                        cartItem.getProduct().getProductId(),
+                        cartItem.getProduct().getName(),
+                        !cartItem.getProduct().getImgProduct().isEmpty() ? cartItem.getProduct().getImgProduct().get(0) : null,
+                        cartItem.getProduct().getPrice(),
+                        cartItem.getSize(),
+                        cartItem.getColor(),
+                        cartItem.getQuantity(),
+                        cartItem.getProduct().getDiscount(),
+                        discountPrice,
+                        totalPrice,
+                        cartItem.isCheckedOut()
+                );
             }).collect(Collectors.toList());
 
-            // Create and save order items from cart items
+            // Create and save order items from selected cart items
             selectedItems.forEach(cartItem -> {
-                BigDecimal discountPrice = cartItem.getProduct().getPrice().multiply(BigDecimal.valueOf(1 - cartItem.getProduct().getDiscount().doubleValue() / 100));
+                BigDecimal discountPrice = cartItem.getProduct().getPrice()
+                        .multiply(BigDecimal.valueOf(1 - cartItem.getProduct().getDiscount().doubleValue() / 100));
                 BigDecimal price = discountPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
 
-                OrderItem orderItem = OrderItem.builder().order(savedOrder).product(cartItem.getProduct()).quantity(cartItem.getQuantity()).price(price).build();
+                // Create order item
+                OrderItem orderItem = OrderItem.builder()
+                        .order(savedOrder)
+                        .product(cartItem.getProduct())
+                        .quantity(cartItem.getQuantity())
+                        .price(price)
+                        .build();
 
                 orderItemRepository.save(orderItem);
-                cartItem.setCheckedOut(false);// Persist each order item
+
+                // Now set `checkedOut` to false for selected cart items and remove them from the cart
+                cartItem.setCheckedOut(false);  // Set `checkedOut` to false
+                cartItemRepository.save(cartItem);  // Persist the change
+
+                // Remove the item from the cart after creating the order item
+                cartItemRepository.delete(cartItem); // Delete cart item after order creation
             });
 
             // Return an OrderResponse DTO with the cart items as CartItemResponse
@@ -102,6 +139,7 @@ public class OrderService {
             throw new RuntimeException("Error creating order: " + e.getMessage());
         }
     }
+
 
     @Transactional
     public OrderCancelResponse cancelOrder(Long orderId) {
