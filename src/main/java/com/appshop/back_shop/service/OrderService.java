@@ -10,6 +10,7 @@ import com.appshop.back_shop.repository.*;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -33,6 +34,7 @@ public class OrderService {
     UserRepository userRepository;
     CouponRepository couponRepository;
     ShippingAddressRepository shippingAddressRepository;
+    PaymentRepository paymentRepository;
 
     public Long getUserIdFromToken() {
         JwtAuthenticationToken authenticationToken = (JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
@@ -41,38 +43,43 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderResponse createOrder(String paymentMethod, String couponCode, Long addressId) {
+    public OrderResponse createOrder(String couponCode, Long addressId, String paymentMethod) {
         try {
             Long userId = getUserIdFromToken();
 
+            // Lấy địa chỉ giao hàng
             ShippingAddress shippingAddress = shippingAddressRepository.findById(addressId)
                     .orElseThrow(() -> new AppException(ErrorCode.SHIPPING_ADDRESS_NOT_FOUND));
 
-            // Fetch and check cart items for the user, only the selected (checked-out) ones
+            // Lấy các sản phẩm đã chọn từ giỏ hàng
             List<CartItem> selectedItems = cartItemRepository.findByCart_User_IdAndCheckedOutTrue(userId);
             if (selectedItems.isEmpty()) {
                 throw new RuntimeException("No items found in cart for checkout.");
             }
 
-            // Calculate the total amount before discount and each item's discounted price
-            BigDecimal totalBeforeDiscount = selectedItems.stream().map(cartItem -> {
-                BigDecimal discountPrice = cartItem.getProduct().getPrice()
-                        .multiply(BigDecimal.valueOf(1 - cartItem.getProduct().getDiscount().doubleValue() / 100));
-                return discountPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
-            }).reduce(BigDecimal.ZERO, BigDecimal::add);
+            // Tính tổng giá trước khi áp dụng giảm giá
+            BigDecimal totalBeforeDiscount = selectedItems.stream()
+                    .map(cartItem -> {
+                        BigDecimal discountPrice = cartItem.getProduct().getPrice()
+                                .multiply(BigDecimal.valueOf(1 - cartItem.getProduct().getDiscount().doubleValue() / 100));
+                        return discountPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+                    })
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            // Initialize discountAmount as zero if no coupon code is provided
+            // Tính giảm giá nếu có mã giảm giá
             BigDecimal discountAmount = BigDecimal.ZERO;
-
-            // Apply coupon code if provided
             if (couponCode != null && !couponCode.isEmpty()) {
                 discountAmount = applyDiscountCode(couponCode, totalBeforeDiscount);
             }
 
-            // Calculate total after discount
+            // Tổng giá trị sau giảm giá
             BigDecimal totalAfterDiscount = totalBeforeDiscount.subtract(discountAmount);
 
-            // Build and save the order
+            // Xác định phương thức thanh toán, mặc định là COD
+            String resolvedPaymentMethod = (paymentMethod != null && paymentMethod.equalsIgnoreCase("transfer"))
+                    ? "transfer" : "COD";
+
+            // Tạo và lưu đơn hàng
             Order order = Order.builder()
                     .user(userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND)))
                     .shippingAddress(shippingAddress)
@@ -85,7 +92,39 @@ public class OrderService {
 
             Order savedOrder = orderRepository.save(order);
 
-            // Convert CartItem to CartItemResponse for the OrderResponse
+            // Tạo và lưu các OrderItem
+            selectedItems.forEach(cartItem -> {
+                BigDecimal discountPrice = cartItem.getProduct().getPrice()
+                        .multiply(BigDecimal.valueOf(1 - cartItem.getProduct().getDiscount().doubleValue() / 100));
+                BigDecimal price = discountPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+
+                OrderItem orderItem = OrderItem.builder()
+                        .order(savedOrder)
+                        .product(cartItem.getProduct())
+                        .quantity(cartItem.getQuantity())
+                        .price(price)
+                        .build();
+
+                orderItemRepository.save(orderItem);
+
+                // Cập nhật giỏ hàng
+                cartItem.setCheckedOut(false);  // Đặt trạng thái `checkedOut` thành false
+                cartItemRepository.save(cartItem);  // Lưu thay đổi
+                cartItemRepository.delete(cartItem); // Xóa mục khỏi giỏ hàng
+            });
+
+            // Tạo và lưu thông tin thanh toán
+            Payment payment = Payment.builder()
+                    .order(savedOrder)
+                    .amount(totalAfterDiscount)
+                    .paymentMethod(resolvedPaymentMethod)
+                    .paymentStatus(resolvedPaymentMethod.equals("transfer") ? "awaiting_transfer" : "pending")
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            paymentRepository.save(payment);
+
+            // Chuẩn bị dữ liệu phản hồi
             List<CartItemResponse> cartItemResponses = selectedItems.stream().map(cartItem -> {
                 BigDecimal discountPrice = cartItem.getProduct().getPrice()
                         .multiply(BigDecimal.valueOf(1 - cartItem.getProduct().getDiscount().doubleValue() / 100));
@@ -107,39 +146,14 @@ public class OrderService {
                 );
             }).collect(Collectors.toList());
 
-            // Create and save order items from selected cart items
-            selectedItems.forEach(cartItem -> {
-                BigDecimal discountPrice = cartItem.getProduct().getPrice()
-                        .multiply(BigDecimal.valueOf(1 - cartItem.getProduct().getDiscount().doubleValue() / 100));
-                BigDecimal price = discountPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
-
-                // Create order item
-                OrderItem orderItem = OrderItem.builder()
-                        .order(savedOrder)
-                        .product(cartItem.getProduct())
-                        .quantity(cartItem.getQuantity())
-                        .price(price)
-                        .build();
-
-                orderItemRepository.save(orderItem);
-
-                // Now set `checkedOut` to false for selected cart items and remove them from the cart
-                cartItem.setCheckedOut(false);  // Set `checkedOut` to false
-                cartItemRepository.save(cartItem);  // Persist the change
-
-                // Remove the item from the cart after creating the order item
-                cartItemRepository.delete(cartItem); // Delete cart item after order creation
-            });
-
-            // Return an OrderResponse DTO with the cart items as CartItemResponse
-            return new OrderResponse(savedOrder.getOrderId(), totalAfterDiscount, paymentMethod, cartItemResponses, addressId);
+            // Trả về phản hồi
+            return new OrderResponse(savedOrder.getOrderId(), totalAfterDiscount, resolvedPaymentMethod, cartItemResponses, addressId);
 
         } catch (Exception e) {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             throw new RuntimeException("Error creating order: " + e.getMessage());
         }
     }
-
 
     @Transactional
     public OrderCancelResponse cancelOrder(Long orderId) {
@@ -167,6 +181,7 @@ public class OrderService {
         }
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @Transactional
     public OrderResponse updateOrderStatus(Long orderId, String newStatus) {
         try {
@@ -287,23 +302,21 @@ public class OrderService {
         return orderItems.stream().map(orderItem -> {
             Product product = orderItem.getProduct();
             return new CartItemResponse(
-                    null,  // No CartItemId, since this is coming from the order
+                    null,
                     product.getProductId(),
                     product.getName(),
                     !product.getImgProduct().isEmpty() ? product.getImgProduct().get(0) : null,
                     product.getPrice(),
-                    null,  // No size info in the order, adjust if needed
-                    null,  // No color info in the order, adjust if needed
+                    null,
+                    null,
                     orderItem.getQuantity(),
                     product.getDiscount(),
                     orderItem.getPrice(),
-                    orderItem.getPrice(),  // Assuming same for final price and discounted price
-                    true  // Checked out = true, since it's an order
+                    orderItem.getPrice(),
+                    true
             );
         }).collect(Collectors.toList());
     }
-
-
 
     private BigDecimal applyDiscountCode(String couponCode, BigDecimal total) {
         Coupon coupon = couponRepository.findByCode(couponCode).filter(c -> c.isActive() && LocalDateTime.now().isBefore(c.getExpiryDate()) && c.getRemainingQuantity() > 0).orElseThrow(() -> new AppException(ErrorCode.COUPON_NOT_VALID));

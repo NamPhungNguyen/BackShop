@@ -20,12 +20,12 @@ public class OrderItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long orderItemId;
 
-    @ManyToOne(fetch = FetchType.LAZY) // Lazy load to reduce data fetching
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     Order order;
 
-    @ManyToOne(fetch = FetchType.LAZY) // Lazy load product details
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     Product product;

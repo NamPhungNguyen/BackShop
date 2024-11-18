@@ -22,9 +22,23 @@ public class OrderController {
     OrderService orderService;
 
     @PostMapping("/create")
-    ApiResponse<OrderResponse> createOrder(@RequestParam String paymentMethod, @RequestParam(required = false) String couponCode, @RequestParam Long addressId) {
-        return ApiResponse.<OrderResponse>builder().code(200).result(orderService.createOrder(paymentMethod, couponCode, addressId)).build();
+    ApiResponse<OrderResponse> createOrder(
+            @RequestParam(required = false) String paymentMethod,
+            @RequestParam(required = false) String couponCode,
+            @RequestParam Long addressId
+    ) {
+        OrderResponse orderResponse = orderService.createOrder(
+                couponCode,
+                addressId,
+                paymentMethod
+        );
+
+        return ApiResponse.<OrderResponse>builder()
+                .code(200)
+                .result(orderResponse)
+                .build();
     }
+
 
     @PutMapping("/cancel/{orderId}")
     ApiResponse<OrderCancelResponse> cancelOrder(@PathVariable Long orderId) {

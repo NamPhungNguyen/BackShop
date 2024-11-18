@@ -62,43 +62,26 @@ public class CouponService {
 
     public List<Coupon> getActiveCoupons() {
         LocalDateTime now = LocalDateTime.now();
-        return couponRepository.findByActiveTrueAndExpiryDateAfter(now);
+        return couponRepository.findByActiveTrueAndExpiryDateAfter(now)
+                .stream()
+                .filter(coupon -> coupon.getRemainingQuantity() > 0)
+                .collect(Collectors.toList());
     }
 
     @Transactional
-    public UserCoupon claimCoupon(String poolCode) {
-        Coupon coupon = couponRepository.findByPoolCodeAndActiveTrue(poolCode).orElseThrow(() -> new AppException(ErrorCode.COUPON_NOT_FOUND));
+    public ApplyCouponWithProductsResponse applyCoupon(String couponCode) {
+        Long userId = getUserIdFromToken();
 
-        if (coupon.getRemainingQuantity() <= 0) {
-            throw new AppException(ErrorCode.COUPON_OUT_OF_STOCK);
-        }
+        Coupon coupon = couponRepository.findByCode(couponCode)
+                .filter(c -> c.isActive() && LocalDateTime.now().isBefore(c.getExpiryDate()) && c.getRemainingQuantity() > 0)
+                .orElseThrow(() -> new AppException(ErrorCode.COUPON_NOT_VALID));
 
-        boolean hasUserClaimed = userCouponRepository.existsByUserIdAndCoupon_PoolCodeAndIsUsedFalse(getUserIdFromToken(), poolCode);
+        boolean hasUserClaimed = userCouponRepository.existsByUserIdAndCoupon_PoolCodeAndIsUsedFalse(userId, couponCode);
         if (hasUserClaimed) {
             throw new AppException(ErrorCode.COUPON_ALREADY_CLAIMED);
         }
 
-        User user = userRepository.findById(getUserIdFromToken()).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-
-        UserCoupon userCoupon = new UserCoupon();
-        userCoupon.setUser(user);
-        userCoupon.setCoupon(coupon);
-        userCoupon.setClaimedAt(LocalDate.now());
-        userCoupon.setUsed(false);
-
-        coupon.setRemainingQuantity(coupon.getRemainingQuantity() - 1);
-        userCouponRepository.save(userCoupon);
-        couponRepository.save(coupon);
-
-        return userCoupon;
-    }
-
-
-    public ApplyCouponWithProductsResponse applyCoupon(String couponCode) {
-        Long userId = getUserIdFromToken();
-
         List<CartItem> selectedItems = cartItemRepository.findByCart_User_IdAndCheckedOutTrue(userId);
-
         AtomicReference<BigDecimal> totalBeforeDiscount = new AtomicReference<>(BigDecimal.ZERO);
 
         List<CartItemResponse> selectedItemResponses = selectedItems.stream().map(cartItem -> {
@@ -106,7 +89,6 @@ public class CouponService {
                     .multiply(BigDecimal.valueOf(1 - cartItem.getProduct().getDiscount().doubleValue() / 100));
             BigDecimal totalPrice = discountPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
 
-            // Accumulate total price for all selected items
             totalBeforeDiscount.updateAndGet(v -> v.add(totalPrice));
 
             return new CartItemResponse(
@@ -125,11 +107,20 @@ public class CouponService {
             );
         }).collect(Collectors.toList());
 
-        Coupon coupon = couponRepository.findByCode(couponCode)
-                .filter(c -> c.isActive() && LocalDateTime.now().isBefore(c.getExpiryDate()) && c.getRemainingQuantity() > 0)
-                .orElseThrow(() -> new AppException(ErrorCode.COUPON_NOT_VALID));
         BigDecimal discountAmount = BigDecimal.valueOf(coupon.getDiscountAmount());
         BigDecimal totalAfterDiscount = totalBeforeDiscount.get().subtract(discountAmount);
+
+        User user = userRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        UserCoupon userCoupon = new UserCoupon();
+        userCoupon.setUser(user);
+        userCoupon.setCoupon(coupon);
+        userCoupon.setClaimedAt(LocalDate.now());
+        userCoupon.setUsed(false);
+
+        coupon.setRemainingQuantity(coupon.getRemainingQuantity() - 1);
+        coupon.setActive(coupon.getRemainingQuantity() > 0);
+        userCouponRepository.save(userCoupon);
+        couponRepository.save(coupon);
 
         return new ApplyCouponWithProductsResponse(totalAfterDiscount, discountAmount, totalBeforeDiscount.get(), selectedItemResponses);
     }

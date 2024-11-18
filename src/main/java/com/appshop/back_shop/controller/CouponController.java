@@ -33,10 +33,6 @@ public class CouponController {
         return couponService.getActiveCoupons();
     }
 
-    @PostMapping("/claim-coupon")
-    ApiResponse<UserCoupon> claimCoupon(@RequestParam String poolCode) {
-        return ApiResponse.<UserCoupon>builder().code(200).result(couponService.claimCoupon(poolCode)).build();
-    }
 
     @PostMapping("/apply-coupon")
     ApiResponse<ApplyCouponWithProductsResponse> applyCoupon(@RequestParam String poolCode) {
