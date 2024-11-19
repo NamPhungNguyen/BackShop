@@ -32,5 +32,5 @@ public class Coupon {
 
     @OneToMany(mappedBy = "coupon", cascade = CascadeType.ALL)
     @JsonManagedReference
-    List<UserCoupon> claimedByUsers = new ArrayList<>();  // Danh sách user đã claim mã
+    List<UserCoupon> claimedByUsers = new ArrayList<>();
 }

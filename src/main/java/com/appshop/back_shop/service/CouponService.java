@@ -61,10 +61,19 @@ public class CouponService {
     }
 
     public List<Coupon> getActiveCoupons() {
+        Long userId = getUserIdFromToken();
         LocalDateTime now = LocalDateTime.now();
+
+        // Lấy tất cả các UserCoupon của user
+        List<Long> usedCouponIds = userCouponRepository.findByUser_IdAndIsUsedFalse(userId)
+                .stream()
+                .map(userCoupon -> userCoupon.getCoupon().getId())
+                .collect(Collectors.toList());
+
+        // Lọc các coupon chưa được sử dụng
         return couponRepository.findByActiveTrueAndExpiryDateAfter(now)
                 .stream()
-                .filter(coupon -> coupon.getRemainingQuantity() > 0)
+                .filter(coupon -> coupon.getRemainingQuantity() > 0 && !usedCouponIds.contains(coupon.getId()))
                 .collect(Collectors.toList());
     }
 

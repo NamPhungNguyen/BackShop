@@ -2,6 +2,7 @@ package com.appshop.back_shop.controller;
 
 import com.appshop.back_shop.domain.Coupon;
 import com.appshop.back_shop.domain.UserCoupon;
+import com.appshop.back_shop.dto.request.coupon.CouponRequest;
 import com.appshop.back_shop.dto.response.ApiResponse;
 import com.appshop.back_shop.dto.response.checkout.ApplyCouponWithProductsResponse;
 import com.appshop.back_shop.service.CouponService;
@@ -35,7 +36,11 @@ public class CouponController {
 
 
     @PostMapping("/apply-coupon")
-    ApiResponse<ApplyCouponWithProductsResponse> applyCoupon(@RequestParam String poolCode) {
-        return ApiResponse.<ApplyCouponWithProductsResponse>builder().code(200).result(couponService.applyCoupon(poolCode)).build();
+    public ApiResponse<ApplyCouponWithProductsResponse> applyCoupon(@RequestBody CouponRequest couponRequest) {
+        return ApiResponse.<ApplyCouponWithProductsResponse>builder()
+                .code(200)
+                .result(couponService.applyCoupon(couponRequest.getPoolCode()))
+                .build();
     }
+
 }

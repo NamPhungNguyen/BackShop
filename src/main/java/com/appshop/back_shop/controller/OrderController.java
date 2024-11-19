@@ -1,5 +1,6 @@
 package com.appshop.back_shop.controller;
 
+import com.appshop.back_shop.dto.request.order.OrderRequest;
 import com.appshop.back_shop.dto.response.ApiResponse;
 import com.appshop.back_shop.dto.response.order.OrderCancelResponse;
 import com.appshop.back_shop.dto.response.order.OrderResponse;
@@ -23,14 +24,12 @@ public class OrderController {
 
     @PostMapping("/create")
     ApiResponse<OrderResponse> createOrder(
-            @RequestParam(required = false) String paymentMethod,
-            @RequestParam(required = false) String couponCode,
-            @RequestParam Long addressId
+            @RequestBody OrderRequest orderRequest // Accepting request body
     ) {
         OrderResponse orderResponse = orderService.createOrder(
-                couponCode,
-                addressId,
-                paymentMethod
+                orderRequest.getCouponCode(),
+                orderRequest.getAddressId(),
+                orderRequest.getPaymentMethod()
         );
 
         return ApiResponse.<OrderResponse>builder()
@@ -38,6 +37,7 @@ public class OrderController {
                 .result(orderResponse)
                 .build();
     }
+
 
 
     @PutMapping("/cancel/{orderId}")
