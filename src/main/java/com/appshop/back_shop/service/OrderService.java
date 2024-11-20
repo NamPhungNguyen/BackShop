@@ -10,7 +10,6 @@ import com.appshop.back_shop.repository.*;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -158,30 +157,72 @@ public class OrderService {
     @Transactional
     public OrderCancelResponse cancelOrder(Long orderId) {
         try {
-            Long userId = getUserIdFromToken();
+            Long userId = getUserIdFromToken(); // Lấy userId từ token
 
-            Order order = orderRepository.findById(orderId).filter(o -> o.getUser().getId().equals(userId) && !o.getStatus().equals("cancelled")).orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+            Order order = orderRepository.findById(orderId)
+                    .filter(o -> o.getUser().getId().equals(userId) && !o.getStatus().equals("cancelled"))
+                    .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
 
-            order.getShippingAddress().getAddressId();
-
-            if ("completed".equals(order.getStatus())) {
-                throw new AppException(ErrorCode.ORDER_ALREADY_COMPLETED);
+            // Nếu trạng thái đơn hàng là "completed" hoặc "shipped", không thể hủy đơn hàng
+            if ("completed".equals(order.getStatus()) || "shipped".equals(order.getStatus())) {
+                throw new AppException(ErrorCode.ORDER_ALREADY_COMPLETED_OR_SHIPPED);
             }
 
+            // Cập nhật trạng thái đơn hàng thành "cancelled"
             order.setStatus("cancelled");
             order.setUpdatedAt(LocalDateTime.now());
 
+            // Lưu thay đổi trạng thái đơn hàng
             orderRepository.save(order);
 
+            // Trả về phản hồi cho người dùng
             return new OrderCancelResponse(order.getOrderId(), order.getTotalAmount(), order.getStatus(), order.getShippingAddress(), order.getCreatedAt());
 
         } catch (Exception e) {
+            // Rollback giao dịch nếu có lỗi xảy ra
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-            throw new RuntimeException("Error cancelling order: " + e.getMessage());
+            throw new RuntimeException("Lỗi khi hủy đơn hàng: " + e.getMessage());
         }
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
+    public List<OrderResponse> getAllOrdersByUser() {
+        try {
+            Long userId = getUserIdFromToken(); // Get the user ID from the JWT token
+
+            // Fetch all orders for the user
+            List<Order> allOrders = orderRepository.findByUserId(userId);
+
+            if (allOrders.isEmpty()) {
+                throw new AppException(ErrorCode.ORDER_NOT_FOUND); // If no orders are found
+            }
+
+            // Map the list of orders to OrderResponse objects
+            return allOrders.stream()
+                    .map(order -> {
+                        List<OrderItem> orderItems = orderItemRepository.findByOrder(order);
+                        List<CartItemResponse> cartItemResponses = mapOrderItemsToCartResponses(orderItems);
+
+                        return new OrderResponse(
+                                order.getOrderId(),
+                                order.getTotalAmount(),
+                                order.getStatus(),
+                                cartItemResponses,
+                                order.getShippingAddress().getAddressId()
+                        );
+                    })
+                    .collect(Collectors.toList());
+        } catch (AppException e) {
+            // Specific business exception, rethrow it
+            throw e;
+        } catch (Exception e) {
+            // Return a generic error message, rollback transaction if necessary
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            throw new RuntimeException("An error occurred while retrieving the orders: " + e.getMessage(), e);
+        }
+    }
+
+
     @Transactional
     public OrderResponse updateOrderStatus(Long orderId, String newStatus) {
         try {
@@ -296,8 +337,7 @@ public class OrderService {
             throw new RuntimeException("Error retrieving not completed orders: " + e.getMessage());
         }
     }
-
-
+    
     private List<CartItemResponse> mapOrderItemsToCartResponses(List<OrderItem> orderItems) {
         return orderItems.stream().map(orderItem -> {
             Product product = orderItem.getProduct();

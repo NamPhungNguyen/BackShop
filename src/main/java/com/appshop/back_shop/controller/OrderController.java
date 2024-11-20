@@ -10,6 +10,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -54,6 +55,12 @@ public class OrderController {
                 .code(200)
                 .result(orderService.updateOrderStatus(orderId, status))
                 .build();
+    }
+
+    @GetMapping("/list-all")
+    public ResponseEntity<List<OrderResponse>> getAllOrders() {
+        List<OrderResponse> orderResponses = orderService.getAllOrdersByUser();
+        return ResponseEntity.ok(orderResponses);
     }
 
     @GetMapping("completed")
