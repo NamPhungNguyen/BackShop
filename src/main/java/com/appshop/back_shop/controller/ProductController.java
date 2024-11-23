@@ -58,14 +58,20 @@ public class ProductController {
     }
 
     @GetMapping("/search")
-    public List<ProductResponse> searchAndFilterProducts(@RequestParam(required = false) String name, @RequestParam(required = false) Double priceMin, @RequestParam(required = false) Double priceMax) {
+    public List<ProductResponse> searchAndFilterProducts(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) Double priceMin,
+            @RequestParam(required = false) Double priceMax,
+            @RequestParam(defaultValue = "true") boolean sortByPriceAsc) {  // default to true (ascending)
 
         ProductFilter filter = new ProductFilter();
         filter.setName(name);
         filter.setPriceMin(priceMin);
         filter.setPriceMax(priceMax);
 
-        return productService.searchAndFilterProducts(filter);
+        // Pass the filter and sortByPriceAsc to the service
+        return productService.searchAndFilterProducts(filter, sortByPriceAsc);
     }
+
 
 }

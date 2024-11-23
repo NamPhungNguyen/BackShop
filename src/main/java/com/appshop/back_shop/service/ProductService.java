@@ -14,6 +14,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
@@ -68,33 +69,50 @@ public class ProductService {
         return products.stream().map(productMapper::toProductResponse).collect(Collectors.toList());
     }
 
-    public List<ProductResponse> searchAndFilterProducts(ProductFilter filter) {
-        // Build the query with dynamic filters
-        if (filter == null) {
-            return productRepository.findAll().stream()
+    public List<ProductResponse> searchAndFilterProducts(ProductFilter filter, boolean sortByPriceAsc) {
+        // If no filter is provided, just return all products with price sorting
+        if (filter == null || filter.getName() == null) {
+            return productRepository.findAll(Sort.by(sortByPriceAsc ? Sort.Order.asc("price") : Sort.Order.desc("price"))).stream()
                     .map(productMapper::toProductResponse)
                     .collect(Collectors.toList());
         }
 
-        // Filter by product name
+        // If filter has name and price range
+        if (filter.getName() != null && filter.getPriceMin() != null && filter.getPriceMax() != null) {
+            return productRepository.findByNameContainingAndPriceBetween(
+                            filter.getName(), filter.getPriceMin(), filter.getPriceMax(),
+                            Sort.by(sortByPriceAsc ? Sort.Order.asc("price") : Sort.Order.desc("price"))
+                    ).stream()
+                    .map(productMapper::toProductResponse)
+                    .collect(Collectors.toList());
+        }
+
+        // If filter has only name
         if (filter.getName() != null) {
-            return productRepository.findByNameContaining(filter.getName()).stream()
+            return productRepository.findByNameContaining(
+                            filter.getName(),
+                            Sort.by(sortByPriceAsc ? Sort.Order.asc("price") : Sort.Order.desc("price"))
+                    ).stream()
                     .map(productMapper::toProductResponse)
                     .collect(Collectors.toList());
         }
 
-        // Filter by price range
+        // If filter has only price range
         if (filter.getPriceMin() != null && filter.getPriceMax() != null) {
-            return productRepository.findByPriceBetween(filter.getPriceMin(), filter.getPriceMax()).stream()
+            return productRepository.findByPriceBetween(
+                            filter.getPriceMin(), filter.getPriceMax(),
+                            Sort.by(sortByPriceAsc ? Sort.Order.asc("price") : Sort.Order.desc("price"))
+                    ).stream()
                     .map(productMapper::toProductResponse)
                     .collect(Collectors.toList());
         }
 
-        // Default: return all products
-        return productRepository.findAll().stream()
+        // Default: return all products sorted by price
+        return productRepository.findAll(Sort.by(sortByPriceAsc ? Sort.Order.asc("price") : Sort.Order.desc("price"))).stream()
                 .map(productMapper::toProductResponse)
                 .collect(Collectors.toList());
     }
+
 
 
     @PreAuthorize("hasRole('ADMIN')")
