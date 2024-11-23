@@ -33,4 +33,6 @@ public class CartItem {
     @Column(nullable = false)
     String color;
     boolean checkedOut;
+
+    boolean isPurchased;
 }

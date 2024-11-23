@@ -35,4 +35,7 @@ public class OrderItem {
 
     @Column(nullable = false)
     BigDecimal price;
+
+    String size;
+    String color;
 }

@@ -10,6 +10,7 @@ import com.appshop.back_shop.repository.*;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Slf4j
 public class OrderService {
 
     OrderRepository orderRepository;
@@ -34,6 +36,7 @@ public class OrderService {
     CouponRepository couponRepository;
     ShippingAddressRepository shippingAddressRepository;
     PaymentRepository paymentRepository;
+    CartRepository cartRepository;
 
     public Long getUserIdFromToken() {
         JwtAuthenticationToken authenticationToken = (JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
@@ -102,17 +105,19 @@ public class OrderService {
                         .product(cartItem.getProduct())
                         .quantity(cartItem.getQuantity())
                         .price(price)
+                        .size(cartItem.getSize())   // Lưu size
+                        .color(cartItem.getColor()) // Lưu color
                         .build();
 
                 orderItemRepository.save(orderItem);
 
-                // Cập nhật giỏ hàng
+                // Set 'purchased' and 'checkedOut' to reflect the status after order creation
+                cartItem.setPurchased(true);
                 cartItem.setCheckedOut(false);  // Đặt trạng thái `checkedOut` thành false
                 cartItemRepository.save(cartItem);  // Lưu thay đổi
-                cartItemRepository.delete(cartItem); // Xóa mục khỏi giỏ hàng
             });
 
-            // Tạo và lưu thông tin thanh toán
+            // Create and save the payment information
             Payment payment = Payment.builder()
                     .order(savedOrder)
                     .amount(totalAfterDiscount)
@@ -123,7 +128,10 @@ public class OrderService {
 
             paymentRepository.save(payment);
 
-            // Chuẩn bị dữ liệu phản hồi
+            // Remove the items from the cart after the order is placed
+            clearCartAfterOrder(userId);
+
+            // Prepare the response data
             List<CartItemResponse> cartItemResponses = selectedItems.stream().map(cartItem -> {
                 BigDecimal discountPrice = cartItem.getProduct().getPrice()
                         .multiply(BigDecimal.valueOf(1 - cartItem.getProduct().getDiscount().doubleValue() / 100));
@@ -145,12 +153,35 @@ public class OrderService {
                 );
             }).collect(Collectors.toList());
 
-            // Trả về phản hồi
+            // Return the response
             return new OrderResponse(savedOrder.getOrderId(), totalAfterDiscount, resolvedPaymentMethod, cartItemResponses, addressId);
 
         } catch (Exception e) {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             throw new RuntimeException("Error creating order: " + e.getMessage());
+        }
+    }
+
+    private void clearCartAfterOrder(Long userId) {
+        Cart cart = cartRepository.findByUserId(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.CART_NOT_EXISTS));
+        List<CartItem> cartItems = cartItemRepository.findByCart(cart);
+
+        // Chỉ xử lý các sản phẩm đã được mua (purchased = true)
+        cartItems.forEach(cartItem -> {
+            if (cartItem.isPurchased()) { // Kiểm tra xem sản phẩm đã được mua hay chưa
+                cartItem.setCheckedOut(false); // Đánh dấu là chưa thanh toán
+                cartItemRepository.save(cartItem); // Lưu thay đổi
+            }
+        });
+
+        // Xóa các sản phẩm đã được mua
+        List<CartItem> purchasedItems = cartItems.stream()
+                .filter(CartItem::isPurchased)
+                .collect(Collectors.toList());
+
+        if (!purchasedItems.isEmpty()) {
+            cartItemRepository.deleteAll(purchasedItems); // Xóa các item đã được mua
         }
     }
 
@@ -187,41 +218,51 @@ public class OrderService {
 
     @Transactional
     public List<OrderResponse> getAllOrdersByUser() {
-        try {
-            Long userId = getUserIdFromToken(); // Get the user ID from the JWT token
+        Long userId = getUserIdFromToken(); 
 
-            // Fetch all orders for the user
-            List<Order> allOrders = orderRepository.findByUserId(userId);
+        // Lấy danh sách tất cả các đơn hàng
+        List<Order> orders = orderRepository.findByUserId(userId);
 
-            if (allOrders.isEmpty()) {
-                throw new AppException(ErrorCode.ORDER_NOT_FOUND); // If no orders are found
-            }
-
-            // Map the list of orders to OrderResponse objects
-            return allOrders.stream()
-                    .map(order -> {
-                        List<OrderItem> orderItems = orderItemRepository.findByOrder(order);
-                        List<CartItemResponse> cartItemResponses = mapOrderItemsToCartResponses(orderItems);
-
-                        return new OrderResponse(
-                                order.getOrderId(),
-                                order.getTotalAmount(),
-                                order.getStatus(),
-                                cartItemResponses,
-                                order.getShippingAddress().getAddressId()
-                        );
-                    })
-                    .collect(Collectors.toList());
-        } catch (AppException e) {
-            // Specific business exception, rethrow it
-            throw e;
-        } catch (Exception e) {
-            // Return a generic error message, rollback transaction if necessary
-            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-            throw new RuntimeException("An error occurred while retrieving the orders: " + e.getMessage(), e);
+        if (orders.isEmpty()) {
+            throw new AppException(ErrorCode.ORDER_NOT_FOUND);
         }
-    }
 
+        // Map danh sách Order sang OrderResponse
+        return orders.stream().map(order -> {
+            List<OrderItem> orderItems = orderItemRepository.findByOrder(order);
+
+            List<CartItemResponse> cartItemResponses = orderItems.stream().map(orderItem -> {
+                Product product = orderItem.getProduct();
+
+                // Lấy size và color trực tiếp từ OrderItem
+                String size = orderItem.getSize();  // Lấy size từ OrderItem
+                String color = orderItem.getColor();  // Lấy color từ OrderItem
+
+                return new CartItemResponse(
+                        null,
+                        product.getProductId(),
+                        product.getName(),
+                        !product.getImgProduct().isEmpty() ? product.getImgProduct().get(0) : null,
+                        product.getPrice(),
+                        size,
+                        color,
+                        orderItem.getQuantity(),
+                        product.getDiscount(),
+                        orderItem.getPrice(),
+                        orderItem.getPrice(),
+                        true
+                );
+            }).collect(Collectors.toList());
+
+            return new OrderResponse(
+                    order.getOrderId(),
+                    order.getTotalAmount(),
+                    order.getStatus(),
+                    cartItemResponses,
+                    order.getShippingAddress().getAddressId()
+            );
+        }).collect(Collectors.toList());
+    }
 
     @Transactional
     public OrderResponse updateOrderStatus(Long orderId, String newStatus) {
@@ -337,10 +378,11 @@ public class OrderService {
             throw new RuntimeException("Error retrieving not completed orders: " + e.getMessage());
         }
     }
-    
+
     private List<CartItemResponse> mapOrderItemsToCartResponses(List<OrderItem> orderItems) {
         return orderItems.stream().map(orderItem -> {
             Product product = orderItem.getProduct();
+
             return new CartItemResponse(
                     null,
                     product.getProductId(),

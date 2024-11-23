@@ -60,7 +60,6 @@ public class ProductService {
                 .map(product -> productMapper.toProductResponse(product));
     }
 
-
     public List<ProductResponse> getListProductByCategory(Long categoryId) {
         Category category = categoryRepository.findByCategoryId(categoryId).orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_EXISTED));
 
@@ -112,8 +111,6 @@ public class ProductService {
                 .map(productMapper::toProductResponse)
                 .collect(Collectors.toList());
     }
-
-
 
     @PreAuthorize("hasRole('ADMIN')")
     public ProductResponse updateProductId(Long id, ProductRequest request) {
