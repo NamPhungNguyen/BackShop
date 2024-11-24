@@ -20,6 +20,7 @@ import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -188,7 +189,7 @@ public class OrderService {
     @Transactional
     public OrderCancelResponse cancelOrder(Long orderId) {
         try {
-            Long userId = getUserIdFromToken(); // Lấy userId từ token
+            Long userId = getUserIdFromToken();
 
             Order order = orderRepository.findById(orderId)
                     .filter(o -> o.getUser().getId().equals(userId) && !o.getStatus().equals("cancelled"))
@@ -228,7 +229,7 @@ public class OrderService {
         }
 
         // Map danh sách Order sang OrderResponse
-        return orders.stream().map(order -> {
+        return orders.stream().sorted(Comparator.comparing(Order::getCreatedAt).reversed()).map(order -> {
             List<OrderItem> orderItems = orderItemRepository.findByOrder(order);
 
             List<CartItemResponse> cartItemResponses = orderItems.stream().map(orderItem -> {

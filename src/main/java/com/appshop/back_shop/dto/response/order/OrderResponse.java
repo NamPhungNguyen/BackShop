@@ -14,7 +14,7 @@ import java.util.List;
 public class OrderResponse {
     private Long orderId;
     private BigDecimal totalAmount;
-    private String paymentMethod;
+    private String status;
     private List<CartItemResponse> products;
     private Long addressId;
 }
