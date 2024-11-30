@@ -50,11 +50,9 @@ public class CategoryService {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    public Category updateCategory(CategoryRequest request, Long id){
+    public Category updateCategory(CategoryRequest request, Long id) {
         Category category = categoryRepository.findCategoryByCategoryId(id)
                 .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_EXISTED));
-        if (categoryRepository.existsByName(request.getName()))
-            throw new AppException(ErrorCode.CATEGORY_EXISTED);
 
         categoryMapper.updateCategory(category, request);
 

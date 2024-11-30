@@ -15,7 +15,9 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,9 +35,16 @@ public class AddressService {
     public ShippingAddress addAddress(ShippingAddress address) {
         User user = userRepository.findById(getUserIdFromToken()).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         address.setUser(user);
-        if (address.getIsDefault() != null && address.getIsDefault()) {
+
+        List<ShippingAddress> userAddresses = addressRepository.findByUserId(user.getId());
+        if (userAddresses.isEmpty()) {
+            // Địa chỉ đầu tiên, tự động đặt làm mặc định
+            address.setIsDefault(true);
+        } else if (address.getIsDefault() != null && address.getIsDefault()) {
+            // Nếu người dùng chọn địa chỉ này là mặc định, xóa các địa chỉ mặc định khác
             clearOtherDefaultAddresses(user.getId());
         }
+
         return addressRepository.save(address);
     }
 
@@ -86,7 +95,6 @@ public class AddressService {
         addressRepository.deleteById(addressId);
     }
 
-
     public ShippingAddress setDefaultAddress(Long addressId) {
         List<ShippingAddress> addresses = addressRepository.findByUserId(getUserIdFromToken());
 
@@ -108,17 +116,22 @@ public class AddressService {
 
     public List<ShippingAddress> getUserAddresses() {
         Long userId = getUserIdFromToken();
-        return addressRepository.findByUserId(userId);
-    }
 
-    public ShippingAddress getUserAddressDefault() {
-        Long userId = getUserIdFromToken();
         List<ShippingAddress> addresses = addressRepository.findByUserId(userId);
 
-        return addresses.stream()
+        if (addresses.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return addresses;
+    }
+
+    public List<ShippingAddress> getUserAddressDefault() {
+        Long userId = getUserIdFromToken();
+
+        return addressRepository.findByUserId(userId).stream()
                 .filter(address -> Boolean.TRUE.equals(address.getIsDefault()))
-                .findFirst()
-                .orElseThrow(() -> new AppException(ErrorCode.DEFAULT_SHIPPING_ADDRESS_NOT_FOUND));
+                .collect(Collectors.toList());
     }
 
     private void clearOtherDefaultAddresses(Long userId) {

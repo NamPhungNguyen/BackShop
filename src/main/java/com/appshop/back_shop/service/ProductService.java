@@ -40,13 +40,42 @@ public class ProductService {
 
         Category category = categoryRepository.findByCategoryId(request.getCategoryId()).orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_EXISTED));
 
-
-        Product product = Product.builder().name(request.getName()).description(request.getDescription()).price(request.getPrice()).stock(request.getStock()).size(request.getSize()).color(request.getColor()).brand(request.getBrand()).imgProduct(request.getImgProduct()).category(category).build();
-
+        // Map discount from request to the Product entity
+        Product product = Product.builder()
+                .name(request.getName())
+                .description(request.getDescription())
+                .price(request.getPrice())
+                .stock(request.getStock())
+                .size(request.getSize())
+                .color(request.getColor())
+                .brand(request.getBrand())
+                .imgProduct(request.getImgProduct())
+                .category(category)
+                .discount(request.getDiscount())  // Set discount here
+                .build();
 
         Product savedProduct = productRepository.save(product);
 
-        return ProductResponse.builder().productId(savedProduct.getProductId()).name(savedProduct.getName()).description(savedProduct.getDescription()).price(savedProduct.getPrice()).discount(savedProduct.getDiscount()).stock(savedProduct.getStock()).size(savedProduct.getSize()).color(savedProduct.getColor()).isAvailable(savedProduct.isAvailable()).rating(savedProduct.getRating()).ratingCount(savedProduct.getRatingCount()).brand(savedProduct.getBrand()).productCode(savedProduct.getProductCode()).imgProduct(savedProduct.getImgProduct()).categoryId(category.getCategoryId()).categoryName(category.getName()).createdAt(savedProduct.getCreatedAt()).updatedAt(savedProduct.getUpdatedAt()).build();
+        return ProductResponse.builder()
+                .productId(savedProduct.getProductId())
+                .name(savedProduct.getName())
+                .description(savedProduct.getDescription())
+                .price(savedProduct.getPrice())
+                .discount(savedProduct.getDiscount())
+                .stock(savedProduct.getStock())
+                .size(savedProduct.getSize())
+                .color(savedProduct.getColor())
+                .isAvailable(savedProduct.isAvailable())
+                .rating(savedProduct.getRating())
+                .ratingCount(savedProduct.getRatingCount())
+                .brand(savedProduct.getBrand())
+                .productCode(savedProduct.getProductCode())
+                .imgProduct(savedProduct.getImgProduct())
+                .categoryId(category.getCategoryId())
+                .categoryName(category.getName())
+                .createdAt(savedProduct.getCreatedAt())
+                .updatedAt(savedProduct.getUpdatedAt())
+                .build();
     }
 
     public List<ProductResponse> getListProduct() {

@@ -21,4 +21,5 @@ public class ProductRequest {
     String brand;
     List<String> imgProduct;
     Long categoryId;
+    BigDecimal discount;
 }

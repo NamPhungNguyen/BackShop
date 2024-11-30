@@ -64,8 +64,8 @@ public class AddressController {
     }
 
     @GetMapping("/default")
-    public ApiResponse<ShippingAddress> getUserDefaultAddresses() {
-        return ApiResponse.<ShippingAddress>builder()
+    public ApiResponse<List<ShippingAddress>> getUserDefaultAddresses() {
+        return ApiResponse.<List<ShippingAddress>>builder()
                 .code(200)
                 .result(addressService.getUserAddressDefault())
                 .build();
