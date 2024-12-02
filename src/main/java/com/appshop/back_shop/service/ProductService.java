@@ -40,7 +40,6 @@ public class ProductService {
 
         Category category = categoryRepository.findByCategoryId(request.getCategoryId()).orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_EXISTED));
 
-        // Map discount from request to the Product entity
         Product product = Product.builder()
                 .name(request.getName())
                 .description(request.getDescription())
@@ -51,7 +50,8 @@ public class ProductService {
                 .brand(request.getBrand())
                 .imgProduct(request.getImgProduct())
                 .category(category)
-                .discount(request.getDiscount())  // Set discount here
+                .discount(request.getDiscount())
+                .isAvailable(true)
                 .build();
 
         Product savedProduct = productRepository.save(product);
@@ -86,22 +86,85 @@ public class ProductService {
 
     public Page<ProductResponse> getPagedProducts(Pageable pageable) {
         return productRepository.findAll(pageable)
-                .map(product -> productMapper.toProductResponse(product));
+                .map(product -> new ProductResponse(
+                        product.getProductId(),
+                        product.getName(),
+                        product.getDescription(),
+                        product.getPrice(),
+                        product.getDiscount(),
+                        product.getStock(),
+                        product.getSize(),
+                        product.getColor(),
+                        product.isAvailable(),
+                        product.getRating(),
+                        product.getRatingCount(),
+                        product.getCommentCount(),
+                        product.getBrand(),
+                        product.getProductCode(),
+                        product.getImgProduct(),
+                        product.getCategory().getCategoryId(),
+                        product.getCategory().getName(),
+                        product.getCreatedAt(),
+                        product.getUpdatedAt()
+                ));
     }
 
     public List<ProductResponse> getListProductByCategory(Long categoryId) {
-        Category category = categoryRepository.findByCategoryId(categoryId).orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_EXISTED));
+        Category category = categoryRepository.findByCategoryId(categoryId)
+                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_EXISTED));
 
         List<Product> products = productRepository.findByCategory(category);
 
-        return products.stream().map(productMapper::toProductResponse).collect(Collectors.toList());
+        // Directly map Product to ProductResponse
+        return products.stream().map(product -> new ProductResponse(
+                product.getProductId(),
+                product.getName(),
+                product.getDescription(),
+                product.getPrice(),
+                product.getDiscount(),
+                product.getStock(),
+                product.getSize(),
+                product.getColor(),
+                product.isAvailable(),
+                product.getRating(),
+                product.getRatingCount(),
+                product.getCommentCount(),
+                product.getBrand(),
+                product.getProductCode(),
+                product.getImgProduct(),
+                product.getCategory().getCategoryId(),
+                product.getCategory().getName(),
+                product.getCreatedAt(),
+                product.getUpdatedAt()
+        )).collect(Collectors.toList());
     }
+
 
     public List<ProductResponse> searchAndFilterProducts(ProductFilter filter, boolean sortByPriceAsc) {
         // If no filter is provided, just return all products with price sorting
         if (filter == null || filter.getName() == null) {
             return productRepository.findAll(Sort.by(sortByPriceAsc ? Sort.Order.asc("price") : Sort.Order.desc("price"))).stream()
-                    .map(productMapper::toProductResponse)
+                    .map(product -> new ProductResponse(
+                            product.getProductId(),
+                            product.getName(),
+                            product.getDescription(),
+                            product.getPrice(),
+                            product.getDiscount(),
+                            product.getStock(),
+                            product.getSize(),
+                            product.getColor(),
+                            product.isAvailable(),
+                            product.getRating(),
+                            product.getRatingCount(),
+                            product.getCommentCount(),
+                            product.getBrand(),
+                            product.getProductCode(),
+                            product.getImgProduct(),
+                            product.getCategory().getCategoryId(),
+                            product.getCategory().getName(),
+                            product.getCreatedAt(),
+                            product.getUpdatedAt()
+                    ))
                     .collect(Collectors.toList());
         }
 
@@ -111,7 +174,27 @@ public class ProductService {
                             filter.getName(), filter.getPriceMin(), filter.getPriceMax(),
                             Sort.by(sortByPriceAsc ? Sort.Order.asc("price") : Sort.Order.desc("price"))
                     ).stream()
-                    .map(productMapper::toProductResponse)
+                    .map(product -> new ProductResponse(
+                            product.getProductId(),
+                            product.getName(),
+                            product.getDescription(),
+                            product.getPrice(),
+                            product.getDiscount(),
+                            product.getStock(),
+                            product.getSize(),
+                            product.getColor(),
+                            product.isAvailable(),
+                            product.getRating(),
+                            product.getRatingCount(),
+                            product.getCommentCount(),
+                            product.getBrand(),
+                            product.getProductCode(),
+                            product.getImgProduct(),
+                            product.getCategory().getCategoryId(),
+                            product.getCategory().getName(),
+                            product.getCreatedAt(),
+                            product.getUpdatedAt()
+                    ))
                     .collect(Collectors.toList());
         }
 
@@ -121,7 +204,27 @@ public class ProductService {
                             filter.getName(),
                             Sort.by(sortByPriceAsc ? Sort.Order.asc("price") : Sort.Order.desc("price"))
                     ).stream()
-                    .map(productMapper::toProductResponse)
+                    .map(product -> new ProductResponse(
+                            product.getProductId(),
+                            product.getName(),
+                            product.getDescription(),
+                            product.getPrice(),
+                            product.getDiscount(),
+                            product.getStock(),
+                            product.getSize(),
+                            product.getColor(),
+                            product.isAvailable(),
+                            product.getRating(),
+                            product.getRatingCount(),
+                            product.getCommentCount(),
+                            product.getBrand(),
+                            product.getProductCode(),
+                            product.getImgProduct(),
+                            product.getCategory().getCategoryId(),
+                            product.getCategory().getName(),
+                            product.getCreatedAt(),
+                            product.getUpdatedAt()
+                    ))
                     .collect(Collectors.toList());
         }
 
@@ -131,15 +234,56 @@ public class ProductService {
                             filter.getPriceMin(), filter.getPriceMax(),
                             Sort.by(sortByPriceAsc ? Sort.Order.asc("price") : Sort.Order.desc("price"))
                     ).stream()
-                    .map(productMapper::toProductResponse)
+                    .map(product -> new ProductResponse(
+                            product.getProductId(),
+                            product.getName(),
+                            product.getDescription(),
+                            product.getPrice(),
+                            product.getDiscount(),
+                            product.getStock(),
+                            product.getSize(),
+                            product.getColor(),
+                            product.isAvailable(),
+                            product.getRating(),
+                            product.getRatingCount(),
+                            product.getCommentCount(),
+                            product.getBrand(),
+                            product.getProductCode(),
+                            product.getImgProduct(),
+                            product.getCategory().getCategoryId(),
+                            product.getCategory().getName(),
+                            product.getCreatedAt(),
+                            product.getUpdatedAt()
+                    ))
                     .collect(Collectors.toList());
         }
 
         // Default: return all products sorted by price
         return productRepository.findAll(Sort.by(sortByPriceAsc ? Sort.Order.asc("price") : Sort.Order.desc("price"))).stream()
-                .map(productMapper::toProductResponse)
+                .map(product -> new ProductResponse(
+                        product.getProductId(),
+                        product.getName(),
+                        product.getDescription(),
+                        product.getPrice(),
+                        product.getDiscount(),
+                        product.getStock(),
+                        product.getSize(),
+                        product.getColor(),
+                        product.isAvailable(),
+                        product.getRating(),
+                        product.getRatingCount(),
+                        product.getCommentCount(),
+                        product.getBrand(),
+                        product.getProductCode(),
+                        product.getImgProduct(),
+                        product.getCategory().getCategoryId(),
+                        product.getCategory().getName(),
+                        product.getCreatedAt(),
+                        product.getUpdatedAt()
+                ))
                 .collect(Collectors.toList());
     }
+
 
     @PreAuthorize("hasRole('ADMIN')")
     public ProductResponse updateProductId(Long id, ProductRequest request) {

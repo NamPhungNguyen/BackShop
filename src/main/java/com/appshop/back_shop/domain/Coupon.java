@@ -22,13 +22,13 @@ public class Coupon {
 
     String poolCode;              // Mã đại diện cho nhóm mã giảm giá
     String code;                  // Mã giảm giá duy nhất
-    Double discountAmount;        // Giá trị giảm giá
-    LocalDateTime expiryDate;     // Ngày hết hạn
-    boolean active;               // Trạng thái hoạt động
+    Double discountAmount;
+    LocalDateTime expiryDate;
+    boolean active;
     boolean claimed = false;      // Trạng thái đã được claim
 
-    int totalQuantity;            // Tổng số lượng mã trong nhóm
-    int remainingQuantity;        // Số lượng mã còn lại
+    int totalQuantity;
+    int remainingQuantity;
 
     @OneToMany(mappedBy = "coupon", cascade = CascadeType.ALL)
     @JsonManagedReference

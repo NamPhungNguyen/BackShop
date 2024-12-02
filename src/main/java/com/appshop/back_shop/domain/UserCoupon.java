@@ -19,7 +19,7 @@ public class UserCoupon {
     Long id;
 
     @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)  // Mỗi user claim 1 mã coupon
+    @JoinColumn(name = "user_id", nullable = false)
     User user;
 
     @ManyToOne

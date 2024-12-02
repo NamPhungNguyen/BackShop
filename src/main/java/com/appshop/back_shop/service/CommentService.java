@@ -38,12 +38,19 @@ public class CommentService {
     }
 
     public List<CommentResponse> getCommentsByProduct(Long productId) {
-        Product product = productRepository.findById(productId).orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_EXISTED));
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_EXISTED));
 
+        // Get comments for the product and sort by creation date in descending order
         List<Comment> comments = commentRepository.findByProduct(product);
 
+        // Sort comments by createdAt in descending order (newest first)
+        comments.sort((c1, c2) -> c2.getCreatedAt().compareTo(c1.getCreatedAt()));
+
+        // Map sorted comments to CommentResponse
         return comments.stream().map(commentMapper::toResponse).collect(Collectors.toList());
     }
+
 
 
     public void addComment(Long productId, String content, Integer rating, List<String> imageUrls) {

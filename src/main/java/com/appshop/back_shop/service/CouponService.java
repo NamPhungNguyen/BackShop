@@ -133,4 +133,41 @@ public class CouponService {
 
         return new ApplyCouponWithProductsResponse(totalAfterDiscount, discountAmount, totalBeforeDiscount.get(), selectedItemResponses);
     }
+
+    @Transactional
+    public Coupon updateCoupon(Long couponId, Coupon updatedCoupon) {
+        Coupon existingCoupon = couponRepository.findById(couponId)
+                .orElseThrow(() -> new AppException(ErrorCode.COUPON_NOT_FOUND));
+
+        if (updatedCoupon.getExpiryDate().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Expiry date must be in the future.");
+        }
+
+        if (updatedCoupon.getTotalQuantity() <= 0) {
+            throw new RuntimeException("Total quantity must be greater than zero.");
+        }
+
+        existingCoupon.setCode(updatedCoupon.getCode());
+        existingCoupon.setDiscountAmount(updatedCoupon.getDiscountAmount());
+        existingCoupon.setExpiryDate(updatedCoupon.getExpiryDate());
+        existingCoupon.setTotalQuantity(updatedCoupon.getTotalQuantity());
+
+        existingCoupon.setActive(updatedCoupon.isActive());
+
+        return couponRepository.save(existingCoupon);
+    }
+
+
+    @Transactional
+    public void deleteCoupon(Long couponId) {
+        Coupon coupon = couponRepository.findById(couponId)
+                .orElseThrow(() -> new AppException(ErrorCode.COUPON_NOT_FOUND));
+
+        if (coupon.getRemainingQuantity() == 0) {
+            throw new AppException(ErrorCode.COUPON_ALREADY_EXPIRED_OR_USED);
+        }
+
+        coupon.setActive(false);
+        couponRepository.save(coupon);
+    }
 }

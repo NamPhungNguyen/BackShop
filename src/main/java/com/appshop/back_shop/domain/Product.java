@@ -52,7 +52,7 @@ public class Product {
     List<String> color = new ArrayList<>();
 
     @Column(nullable = false)
-    boolean isAvailable = true;
+    boolean isAvailable;
 
     @Column
     double rating = 0.0;

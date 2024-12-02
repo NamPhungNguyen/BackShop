@@ -46,8 +46,7 @@ public enum ErrorCode {
     ORDER_ALREADY_COMPLETED(1035, "Order has already been completed, cannot cancel.", HttpStatus.BAD_REQUEST),
     INVALID_ORDER_STATUS(1036, "Invalid order status", HttpStatus.BAD_REQUEST),
     ORDER_ALREADY_COMPLETED_OR_SHIPPED(1036, "ORDER_ALREADY_COMPLETED_OR_SHIPPED", HttpStatus.BAD_REQUEST),
-
-    ;
+    COUPON_ALREADY_EXPIRED_OR_USED(1, "COUPON_ALREADY_EXPIRED_OR_USED", HttpStatus.BAD_REQUEST);
 
     ErrorCode(int code, String message, HttpStatusCode statusCode) {
         this.code = code;
