@@ -1,7 +1,6 @@
 package com.appshop.back_shop.controller;
 
 import com.appshop.back_shop.domain.Coupon;
-import com.appshop.back_shop.domain.UserCoupon;
 import com.appshop.back_shop.dto.request.coupon.CouponRequest;
 import com.appshop.back_shop.dto.response.ApiResponse;
 import com.appshop.back_shop.dto.response.checkout.ApplyCouponWithProductsResponse;
@@ -37,19 +36,18 @@ public class CouponController {
         return couponService.getActiveCoupons();
     }
 
+    @GetMapping("/list-all")
+    public List<Coupon> getAllCoupons() {
+        return couponService.getAllCoupons();
+    }
 
     @PostMapping("/apply-coupon")
     public ApiResponse<ApplyCouponWithProductsResponse> applyCoupon(@RequestBody CouponRequest couponRequest) {
-        return ApiResponse.<ApplyCouponWithProductsResponse>builder()
-                .code(200)
-                .result(couponService.applyCoupon(couponRequest.getPoolCode()))
-                .build();
+        return ApiResponse.<ApplyCouponWithProductsResponse>builder().code(200).result(couponService.applyCoupon(couponRequest.getPoolCode())).build();
     }
 
     @PutMapping("/{couponId}")
-    public ResponseEntity<Coupon> updateCoupon(
-            @PathVariable Long couponId,
-            @RequestBody @Valid Coupon updatedCoupon) {
+    public ResponseEntity<Coupon> updateCoupon(@PathVariable Long couponId, @RequestBody @Valid Coupon updatedCoupon) {
         try {
             Coupon updated = couponService.updateCoupon(couponId, updatedCoupon);
             return ResponseEntity.ok(updated);

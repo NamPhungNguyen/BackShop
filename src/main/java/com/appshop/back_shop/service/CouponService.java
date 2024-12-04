@@ -78,6 +78,24 @@ public class CouponService {
     }
 
     @Transactional
+    public List<Coupon> getAllCoupons() {
+        Long userId = getUserIdFromToken();
+
+        // Get all user coupons
+        List<Long> usedCouponIds = userCouponRepository.findByUser_IdAndIsUsedFalse(userId)
+                .stream()
+                .map(userCoupon -> userCoupon.getCoupon().getId())
+                .collect(Collectors.toList());
+
+        // Sort coupons by 'id' in descending order (newest first)
+        return couponRepository.findAll()
+                .stream()
+                .filter(coupon -> !usedCouponIds.contains(coupon.getId())) // Filter out used coupons
+                .sorted((coupon1, coupon2) -> coupon2.getId().compareTo(coupon1.getId())) // Sort by ID (descending)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
     public ApplyCouponWithProductsResponse applyCoupon(String couponCode) {
         Long userId = getUserIdFromToken();
 
@@ -157,17 +175,9 @@ public class CouponService {
         return couponRepository.save(existingCoupon);
     }
 
-
     @Transactional
     public void deleteCoupon(Long couponId) {
-        Coupon coupon = couponRepository.findById(couponId)
-                .orElseThrow(() -> new AppException(ErrorCode.COUPON_NOT_FOUND));
-
-        if (coupon.getRemainingQuantity() == 0) {
-            throw new AppException(ErrorCode.COUPON_ALREADY_EXPIRED_OR_USED);
-        }
-
-        coupon.setActive(false);
-        couponRepository.save(coupon);
+        couponRepository.deleteById(couponId);
     }
+
 }

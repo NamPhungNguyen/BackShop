@@ -1,20 +1,17 @@
 package com.appshop.back_shop.controller;
 
-import com.appshop.back_shop.domain.Order;
 import com.appshop.back_shop.dto.request.order.OrderRequest;
 import com.appshop.back_shop.dto.response.ApiResponse;
 import com.appshop.back_shop.dto.response.order.OrderCancelResponse;
+import com.appshop.back_shop.dto.response.order.OrderListAllResponse;
 import com.appshop.back_shop.dto.response.order.OrderPageResponse;
 import com.appshop.back_shop.dto.response.order.OrderResponse;
 import com.appshop.back_shop.service.OrderService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AccessLevel;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -87,7 +84,7 @@ public class OrderController {
     }
 
     @GetMapping("/list-all")
-    public List<OrderResponse> getAllOrders() {
+    public List<OrderListAllResponse> getAllOrders() {
         return orderService.getAllOrdersByUser();
     }
 

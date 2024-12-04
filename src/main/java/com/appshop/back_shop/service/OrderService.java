@@ -2,7 +2,9 @@ package com.appshop.back_shop.service;
 
 import com.appshop.back_shop.domain.*;
 import com.appshop.back_shop.dto.response.Cart.CartItemResponse;
+import com.appshop.back_shop.dto.response.address.ShippingAddressResponse;
 import com.appshop.back_shop.dto.response.order.OrderCancelResponse;
+import com.appshop.back_shop.dto.response.order.OrderListAllResponse;
 import com.appshop.back_shop.dto.response.order.OrderPageResponse;
 import com.appshop.back_shop.dto.response.order.OrderResponse;
 import com.appshop.back_shop.exception.AppException;
@@ -123,91 +125,142 @@ public class OrderService {
         } else {
             ordersPage = orderRepository.findByStatus(status, pageable);
         }
+
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        List<OrderPageResponse> orderResponses = ordersPage.getContent().stream()
-                .sorted(Comparator.comparing(Order::getCreatedAt).reversed())
-                .map(order -> {
-                    List<OrderItem> orderItems = orderItemRepository.findByOrder(order);
+        List<OrderPageResponse> orderResponses = ordersPage.getContent().stream().map(order -> {
+            List<OrderItem> orderItems = orderItemRepository.findByOrder(order);
 
-                    List<CartItemResponse> cartItemResponses = orderItems.stream().map(orderItem -> {
-                        Product product = orderItem.getProduct();
+            List<CartItemResponse> cartItemResponses = orderItems.stream().map(orderItem -> {
+                Product product = orderItem.getProduct();
+                String sizes = orderItem.getSize();
+                String color = orderItem.getColor();
 
-                        String sizes = orderItem.getSize();
-                        String color = orderItem.getColor();
+                return new CartItemResponse(
+                        null,
+                        product.getProductId(),
+                        product.getName(),
+                        !product.getImgProduct().isEmpty() ? product.getImgProduct().get(0) : null,
+                        product.getPrice(),
+                        sizes,
+                        color,
+                        orderItem.getQuantity(),
+                        product.getDiscount(),
+                        orderItem.getPrice(),
+                        orderItem.getPrice(),
+                        true
+                );
+            }).collect(Collectors.toList());
 
-                        return new CartItemResponse(null, product.getProductId(), product.getName(),
-                                !product.getImgProduct().isEmpty() ? product.getImgProduct().get(0) : null,
-                                product.getPrice(), sizes, color, orderItem.getQuantity(), product.getDiscount(),
-                                orderItem.getPrice(), orderItem.getPrice(), true);
-                    }).collect(Collectors.toList());
+            String createdAtFormatted = order.getCreatedAt().format(formatter);
+            String updatedAtFormatted = order.getUpdatedAt().format(formatter);
 
-                    String createdAtFormatted = order.getCreatedAt().format(formatter);
-                    String updatedAtFormatted = order.getUpdatedAt().format(formatter);
+            // Map ShippingAddress to ShippingAddressResponse
+            ShippingAddressResponse shippingAddressResponse = null;
+            Long addressId = null;
 
-                    return new OrderPageResponse(
-                            order.getOrderId(),
-                            order.getTotalAmount(),
-                            order.getStatus(),
-                            cartItemResponses,
-                            order.getShippingAddress().getAddressId(),
-                            createdAtFormatted,
-                            updatedAtFormatted
-                    );
-                }).collect(Collectors.toList());
+            if (order.getShippingAddress() != null) {
+                ShippingAddress shippingAddress = order.getShippingAddress();
+                addressId = shippingAddress.getAddressId();
+                shippingAddressResponse = new ShippingAddressResponse(
+                        shippingAddress.getAddressId(),
+                        shippingAddress.getFullName(),
+                        shippingAddress.getPhoneNumber(),
+                        shippingAddress.getAddressDetail(),
+                        shippingAddress.getAdditionalAddress(),
+                        shippingAddress.getProvince(),
+                        shippingAddress.getCity(),
+                        shippingAddress.getCountry(),
+                        shippingAddress.getIsDefault()
+                );
+            }
+
+            return new OrderPageResponse(
+                    order.getOrderId(),
+                    order.getTotalAmount(),
+                    order.getStatus(),
+                    cartItemResponses,
+                    addressId,
+                    shippingAddressResponse, 
+                    createdAtFormatted,
+                    updatedAtFormatted
+            );
+        }).collect(Collectors.toList());
 
         return new PageImpl<>(orderResponses, pageable, ordersPage.getTotalElements());
     }
 
+
+
     @Transactional
-    public Page<OrderPageResponse> searchOrders(String status, LocalDateTime startDate, LocalDateTime endDate,
-                                                String fullName, String phoneNumber, String addressDetail,
-                                                int page, int size) {
+    public Page<OrderPageResponse> searchOrders(String status, LocalDateTime startDate, LocalDateTime endDate, String fullName, String phoneNumber, String addressDetail, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
         Page<Order> ordersPage = orderRepository.searchOrders(status, startDate, endDate, fullName, phoneNumber, addressDetail, pageable);
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        List<OrderPageResponse> orderResponses = ordersPage.getContent().stream()
-                .map(order -> {
-                    List<OrderItem> orderItems = orderItemRepository.findByOrder(order);
+        List<OrderPageResponse> orderResponses = ordersPage.getContent().stream().map(order -> {
+            List<OrderItem> orderItems = orderItemRepository.findByOrder(order);
 
-                    List<CartItemResponse> cartItemResponses = orderItems.stream().map(orderItem -> {
-                        Product product = orderItem.getProduct();
-                        String sizes = orderItem.getSize();
-                        String color = orderItem.getColor();
+            List<CartItemResponse> cartItemResponses = orderItems.stream().map(orderItem -> {
+                Product product = orderItem.getProduct();
+                String sizes = orderItem.getSize();
+                String color = orderItem.getColor();
 
-                        return new CartItemResponse(
-                                null,
-                                product.getProductId(),
-                                product.getName(),
-                                !product.getImgProduct().isEmpty() ? product.getImgProduct().get(0) : null,
-                                product.getPrice(),
-                                sizes,
-                                color,
-                                orderItem.getQuantity(),
-                                product.getDiscount(),
-                                orderItem.getPrice(),
-                                orderItem.getPrice(),
-                                true
-                        );
-                    }).collect(Collectors.toList());
+                return new CartItemResponse(
+                        null,
+                        product.getProductId(),
+                        product.getName(),
+                        !product.getImgProduct().isEmpty() ? product.getImgProduct().get(0) : null,
+                        product.getPrice(),
+                        sizes,
+                        color,
+                        orderItem.getQuantity(),
+                        product.getDiscount(),
+                        orderItem.getPrice(),
+                        orderItem.getPrice(),
+                        true
+                );
+            }).collect(Collectors.toList());
 
-                    String createdAtFormatted = order.getCreatedAt().format(formatter);
-                    String updatedAtFormatted = order.getUpdatedAt().format(formatter);
+            String createdAtFormatted = order.getCreatedAt().format(formatter);
+            String updatedAtFormatted = order.getUpdatedAt().format(formatter);
 
-                    return new OrderPageResponse(
-                            order.getOrderId(),
-                            order.getTotalAmount(),
-                            order.getStatus(),
-                            cartItemResponses,
-                            order.getShippingAddress().getAddressId(),
-                            createdAtFormatted,
-                            updatedAtFormatted
-                    );
-                }).collect(Collectors.toList());
+            // Map ShippingAddress to ShippingAddressResponse
+            ShippingAddressResponse shippingAddressResponse = null;
+            Long addressId = null;
+
+            if (order.getShippingAddress() != null) {
+                ShippingAddress shippingAddress = order.getShippingAddress();
+                addressId = shippingAddress.getAddressId();
+                shippingAddressResponse = new ShippingAddressResponse(
+                        shippingAddress.getAddressId(),
+                        shippingAddress.getFullName(),
+                        shippingAddress.getPhoneNumber(),
+                        shippingAddress.getAddressDetail(),
+                        shippingAddress.getAdditionalAddress(),
+                        shippingAddress.getProvince(),
+                        shippingAddress.getCity(),
+                        shippingAddress.getCountry(),
+                        shippingAddress.getIsDefault()
+                );
+            }
+
+            return new OrderPageResponse(
+                    order.getOrderId(),
+                    order.getTotalAmount(),
+                    order.getStatus(),
+                    cartItemResponses,
+                    addressId, // Add addressId to response
+                    shippingAddressResponse, // Full shipping address object
+                    createdAtFormatted,
+                    updatedAtFormatted
+            );
+        }).collect(Collectors.toList());
 
         return new PageImpl<>(orderResponses, pageable, ordersPage.getTotalElements());
     }
+
+
 
     private void clearCartAfterOrder(Long userId) {
         Cart cart = cartRepository.findByUserId(userId).orElseThrow(() -> new AppException(ErrorCode.CART_NOT_EXISTS));
@@ -254,7 +307,7 @@ public class OrderService {
     }
 
     @Transactional
-    public List<OrderResponse> getAllOrdersByUser() {
+    public List<OrderListAllResponse> getAllOrdersByUser() {
         Long userId = getUserIdFromToken();
         List<Order> orders = orderRepository.findByUserId(userId);
 
@@ -268,21 +321,21 @@ public class OrderService {
             List<CartItemResponse> cartItemResponses = orderItems.stream().map(orderItem -> {
                 Product product = orderItem.getProduct();
 
-                String size = orderItem.getSize();
-                String color = orderItem.getColor();
-
-                return new CartItemResponse(null, product.getProductId(), product.getName(), !product.getImgProduct().isEmpty() ? product.getImgProduct().get(0) : null, product.getPrice(), size, color, orderItem.getQuantity(), product.getDiscount(), orderItem.getPrice(), orderItem.getPrice(), true);
+                return new CartItemResponse(null, product.getProductId(), product.getName(), !product.getImgProduct().isEmpty() ? product.getImgProduct().get(0) : null, product.getPrice(), orderItem.getSize(), orderItem.getColor(), orderItem.getQuantity(), product.getDiscount(), orderItem.getPrice(), orderItem.getPrice(), true);
             }).collect(Collectors.toList());
 
-            return new OrderResponse(order.getOrderId(), order.getTotalAmount(), order.getStatus(), cartItemResponses, order.getShippingAddress().getAddressId());
+            ShippingAddress shippingAddress = order.getShippingAddress();
+            ShippingAddressResponse shippingAddressResponse = ShippingAddressResponse.builder().addressId(shippingAddress.getAddressId()).fullName(shippingAddress.getFullName()).phoneNumber(shippingAddress.getPhoneNumber()).addressDetail(shippingAddress.getAddressDetail()).additionalAddress(shippingAddress.getAdditionalAddress()).province(shippingAddress.getProvince()).city(shippingAddress.getCity()).country(shippingAddress.getCountry()).isDefault(shippingAddress.getIsDefault()).build();
+
+            return new OrderListAllResponse(order.getOrderId(), order.getTotalAmount(), order.getStatus(), cartItemResponses, shippingAddress.getAddressId(), // Lấy ID của địa chỉ giao hàng
+                    shippingAddressResponse);
         }).collect(Collectors.toList());
     }
 
     @Transactional
     public OrderResponse updateOrderStatus(Long orderId, String newStatus) {
         try {
-            Order order = orderRepository.findById(orderId)
-                    .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+            Order order = orderRepository.findById(orderId).orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
 
             List<String> validStatuses = List.of("pending", "processing", "shipped", "completed", "cancelled");
             if (!validStatuses.contains(newStatus)) {

@@ -12,13 +12,11 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @Builder
-public class OrderPageResponse {
+public class OrderListAllResponse {
     private Long orderId;
     private BigDecimal totalAmount;
     private String status;
     private List<CartItemResponse> products;
     private Long addressId;
     private ShippingAddressResponse shippingAddress;
-    private String createdAt;
-    private String updatedAt;
 }
