@@ -42,5 +42,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
                              @Param("addressDetail") String addressDetail,
                              Pageable pageable);
 
+    @Query("SELECT MONTH(o.createdAt) AS month, YEAR(o.createdAt) AS year, SUM(o.totalAmount) AS revenue " +
+            "FROM Order o WHERE o.status = 'completed' " +
+            "GROUP BY YEAR(o.createdAt), MONTH(o.createdAt) " +
+            "ORDER BY YEAR(o.createdAt), MONTH(o.createdAt)")
+    List<Object[]> calculateMonthlyRevenue();
 
 }

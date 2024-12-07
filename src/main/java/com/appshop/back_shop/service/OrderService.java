@@ -2,6 +2,7 @@ package com.appshop.back_shop.service;
 
 import com.appshop.back_shop.domain.*;
 import com.appshop.back_shop.dto.response.Cart.CartItemResponse;
+import com.appshop.back_shop.dto.response.MonthlyRevenue;
 import com.appshop.back_shop.dto.response.address.ShippingAddressResponse;
 import com.appshop.back_shop.dto.response.order.OrderCancelResponse;
 import com.appshop.back_shop.dto.response.order.OrderListAllResponse;
@@ -23,11 +24,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,7 +35,6 @@ import java.util.stream.Collectors;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
 public class OrderService {
-
     OrderRepository orderRepository;
     OrderItemRepository orderItemRepository;
     CartItemRepository cartItemRepository;
@@ -135,20 +134,7 @@ public class OrderService {
                 String sizes = orderItem.getSize();
                 String color = orderItem.getColor();
 
-                return new CartItemResponse(
-                        null,
-                        product.getProductId(),
-                        product.getName(),
-                        !product.getImgProduct().isEmpty() ? product.getImgProduct().get(0) : null,
-                        product.getPrice(),
-                        sizes,
-                        color,
-                        orderItem.getQuantity(),
-                        product.getDiscount(),
-                        orderItem.getPrice(),
-                        orderItem.getPrice(),
-                        true
-                );
+                return new CartItemResponse(null, product.getProductId(), product.getName(), !product.getImgProduct().isEmpty() ? product.getImgProduct().get(0) : null, product.getPrice(), sizes, color, orderItem.getQuantity(), product.getDiscount(), orderItem.getPrice(), orderItem.getPrice(), true);
             }).collect(Collectors.toList());
 
             String createdAtFormatted = order.getCreatedAt().format(formatter);
@@ -161,35 +147,14 @@ public class OrderService {
             if (order.getShippingAddress() != null) {
                 ShippingAddress shippingAddress = order.getShippingAddress();
                 addressId = shippingAddress.getAddressId();
-                shippingAddressResponse = new ShippingAddressResponse(
-                        shippingAddress.getAddressId(),
-                        shippingAddress.getFullName(),
-                        shippingAddress.getPhoneNumber(),
-                        shippingAddress.getAddressDetail(),
-                        shippingAddress.getAdditionalAddress(),
-                        shippingAddress.getProvince(),
-                        shippingAddress.getCity(),
-                        shippingAddress.getCountry(),
-                        shippingAddress.getIsDefault()
-                );
+                shippingAddressResponse = new ShippingAddressResponse(shippingAddress.getAddressId(), shippingAddress.getFullName(), shippingAddress.getPhoneNumber(), shippingAddress.getAddressDetail(), shippingAddress.getAdditionalAddress(), shippingAddress.getProvince(), shippingAddress.getCity(), shippingAddress.getCountry(), shippingAddress.getIsDefault());
             }
 
-            return new OrderPageResponse(
-                    order.getOrderId(),
-                    order.getTotalAmount(),
-                    order.getStatus(),
-                    cartItemResponses,
-                    addressId,
-                    shippingAddressResponse,    
-                    createdAtFormatted,
-                    updatedAtFormatted
-            );
+            return new OrderPageResponse(order.getOrderId(), order.getTotalAmount(), order.getStatus(), cartItemResponses, addressId, shippingAddressResponse, createdAtFormatted, updatedAtFormatted);
         }).collect(Collectors.toList());
 
         return new PageImpl<>(orderResponses, pageable, ordersPage.getTotalElements());
     }
-
-
 
     @Transactional
     public Page<OrderPageResponse> searchOrders(String status, LocalDateTime startDate, LocalDateTime endDate, String fullName, String phoneNumber, String addressDetail, int page, int size) {
@@ -206,20 +171,7 @@ public class OrderService {
                 String sizes = orderItem.getSize();
                 String color = orderItem.getColor();
 
-                return new CartItemResponse(
-                        null,
-                        product.getProductId(),
-                        product.getName(),
-                        !product.getImgProduct().isEmpty() ? product.getImgProduct().get(0) : null,
-                        product.getPrice(),
-                        sizes,
-                        color,
-                        orderItem.getQuantity(),
-                        product.getDiscount(),
-                        orderItem.getPrice(),
-                        orderItem.getPrice(),
-                        true
-                );
+                return new CartItemResponse(null, product.getProductId(), product.getName(), !product.getImgProduct().isEmpty() ? product.getImgProduct().get(0) : null, product.getPrice(), sizes, color, orderItem.getQuantity(), product.getDiscount(), orderItem.getPrice(), orderItem.getPrice(), true);
             }).collect(Collectors.toList());
 
             String createdAtFormatted = order.getCreatedAt().format(formatter);
@@ -232,35 +184,16 @@ public class OrderService {
             if (order.getShippingAddress() != null) {
                 ShippingAddress shippingAddress = order.getShippingAddress();
                 addressId = shippingAddress.getAddressId();
-                shippingAddressResponse = new ShippingAddressResponse(
-                        shippingAddress.getAddressId(),
-                        shippingAddress.getFullName(),
-                        shippingAddress.getPhoneNumber(),
-                        shippingAddress.getAddressDetail(),
-                        shippingAddress.getAdditionalAddress(),
-                        shippingAddress.getProvince(),
-                        shippingAddress.getCity(),
-                        shippingAddress.getCountry(),
-                        shippingAddress.getIsDefault()
-                );
+                shippingAddressResponse = new ShippingAddressResponse(shippingAddress.getAddressId(), shippingAddress.getFullName(), shippingAddress.getPhoneNumber(), shippingAddress.getAddressDetail(), shippingAddress.getAdditionalAddress(), shippingAddress.getProvince(), shippingAddress.getCity(), shippingAddress.getCountry(), shippingAddress.getIsDefault());
             }
 
-            return new OrderPageResponse(
-                    order.getOrderId(),
-                    order.getTotalAmount(),
-                    order.getStatus(),
-                    cartItemResponses,
-                    addressId, // Add addressId to response
+            return new OrderPageResponse(order.getOrderId(), order.getTotalAmount(), order.getStatus(), cartItemResponses, addressId, // Add addressId to response
                     shippingAddressResponse, // Full shipping address object
-                    createdAtFormatted,
-                    updatedAtFormatted
-            );
+                    createdAtFormatted, updatedAtFormatted);
         }).collect(Collectors.toList());
 
         return new PageImpl<>(orderResponses, pageable, ordersPage.getTotalElements());
     }
-
-
 
     private void clearCartAfterOrder(Long userId) {
         Cart cart = cartRepository.findByUserId(userId).orElseThrow(() -> new AppException(ErrorCode.CART_NOT_EXISTS));
@@ -278,6 +211,40 @@ public class OrderService {
         if (!purchasedItems.isEmpty()) {
             cartItemRepository.deleteAll(purchasedItems);
         }
+    }
+
+    public List<MonthlyRevenue> getMonthlyRevenue() {
+        // Truy vấn dữ liệu từ cơ sở dữ liệu
+        List<Object[]> results = orderRepository.calculateMonthlyRevenue();
+
+        // Tạo danh sách với 12 tháng gần nhất
+        List<MonthlyRevenue> monthlyRevenueList = new ArrayList<>();
+        LocalDate now = LocalDate.now();
+
+        // Map dữ liệu từ DB về cấu trúc doanh thu theo tháng
+        Map<String, Double> revenueMap = new HashMap<>();
+        for (Object[] result : results) {
+            int month = (Integer) result[0];
+            int year = (Integer) result[1];
+            BigDecimal revenueBD = (BigDecimal) result[2];
+            revenueMap.put(year + "-" + month, revenueBD.doubleValue());
+        }
+
+        for (int i = 0; i < 12; i++) {
+            LocalDate monthYear = now.minusMonths(i);
+            String key = monthYear.getYear() + "-" + monthYear.getMonthValue();
+            double revenue = revenueMap.getOrDefault(key, 0.0);
+
+            monthlyRevenueList.add(new MonthlyRevenue(
+                    monthYear.getMonthValue(),
+                    monthYear.getYear(),
+                    revenue
+            ));
+        }
+
+        Collections.reverse(monthlyRevenueList);
+
+        return monthlyRevenueList;
     }
 
     @Transactional
