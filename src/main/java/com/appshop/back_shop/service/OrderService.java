@@ -180,7 +180,7 @@ public class OrderService {
                     order.getStatus(),
                     cartItemResponses,
                     addressId,
-                    shippingAddressResponse, 
+                    shippingAddressResponse,    
                     createdAtFormatted,
                     updatedAtFormatted
             );
