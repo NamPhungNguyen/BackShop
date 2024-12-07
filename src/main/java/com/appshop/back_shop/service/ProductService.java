@@ -4,6 +4,7 @@ import com.appshop.back_shop.domain.Category;
 import com.appshop.back_shop.domain.Product;
 import com.appshop.back_shop.dto.request.product.ProductFilter;
 import com.appshop.back_shop.dto.request.product.ProductRequest;
+import com.appshop.back_shop.dto.request.product.ProductUpdateRequest;
 import com.appshop.back_shop.dto.response.Product.ProductResponse;
 import com.appshop.back_shop.exception.AppException;
 import com.appshop.back_shop.exception.ErrorCode;
@@ -92,8 +93,8 @@ public class ProductService {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    public ProductResponse updateProductId(Long id, ProductRequest request) {
-        // Lấy product từ DB
+    public ProductResponse updateProductId(Long id, ProductUpdateRequest request) {
+
         Product product = productRepository.findByProductId(id).orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_EXISTED));
 
 
@@ -141,10 +142,13 @@ public class ProductService {
             product.setDiscount(request.getDiscount());
         }
 
+        if (request.getIsAvailable() != null) {
+            product.setAvailable(request.getIsAvailable());
+        }
+
         Product updatedProduct = productRepository.save(product);
         return productMapper.toProductResponse(updatedProduct);
     }
-
 
     @PreAuthorize("hasRole('ADMIN')")
     public void deleteProduct(Long id) {

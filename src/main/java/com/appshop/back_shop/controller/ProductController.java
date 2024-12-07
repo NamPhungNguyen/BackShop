@@ -2,6 +2,7 @@ package com.appshop.back_shop.controller;
 
 import com.appshop.back_shop.dto.request.product.ProductFilter;
 import com.appshop.back_shop.dto.request.product.ProductRequest;
+import com.appshop.back_shop.dto.request.product.ProductUpdateRequest;
 import com.appshop.back_shop.dto.response.ApiResponse;
 import com.appshop.back_shop.dto.response.Product.ProductResponse;
 import com.appshop.back_shop.service.ProductService;
@@ -40,7 +41,7 @@ public class ProductController {
     }
 
     @PutMapping("/update/{productId}")
-    ApiResponse<ProductResponse> updateProductId(@PathVariable("productId") Long id, @RequestBody ProductRequest request) {
+    ApiResponse<ProductResponse> updateProductId(@PathVariable("productId") Long id, @RequestBody ProductUpdateRequest request) {
         return ApiResponse.<ProductResponse>builder().result(productService.updateProductId(id, request)).code(200).message("Update product successful").build();
     }
 
@@ -62,14 +63,13 @@ public class ProductController {
             @RequestParam(required = false) String name,
             @RequestParam(required = false) Double priceMin,
             @RequestParam(required = false) Double priceMax,
-            @RequestParam(defaultValue = "true") boolean sortByPriceAsc) {  // default to true (ascending)
+            @RequestParam(defaultValue = "true") boolean sortByPriceAsc) {
 
         ProductFilter filter = new ProductFilter();
         filter.setName(name);
         filter.setPriceMin(priceMin);
         filter.setPriceMax(priceMax);
 
-        // Pass the filter and sortByPriceAsc to the service
         return productService.searchAndFilterProducts(filter, sortByPriceAsc);
     }
 
