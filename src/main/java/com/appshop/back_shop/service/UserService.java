@@ -13,6 +13,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
@@ -26,11 +27,32 @@ import java.util.List;
 public class UserService {
     UserRepository userRepository;
     UserMapper userMapper;
-
+    OTPService otpService;
+    private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     public Long getUserIdFromToken() {
         JwtAuthenticationToken authenticationToken = (JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
         Jwt jwt = (Jwt) authenticationToken.getCredentials();
         return jwt.getClaim("userId");
+    }
+
+    public boolean changePassword(String email, String newPassword) {
+        // Kiểm tra trạng thái OTP đã xác nhận
+        if (!otpService.isOtpVerified(email)) {
+            return false; // Không cho phép đổi mật khẩu nếu OTP chưa được xác nhận
+        }
+
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) {
+            return false;
+        }
+
+        // Mã hóa mật khẩu và lưu
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        // Xoá trạng thái OTP sau khi thay đổi mật khẩu
+        otpService.generateOTP(email); // Đảm bảo OTP cũ không dùng lại
+        return true;
     }
 
     @PreAuthorize("hasRole('ADMIN')")

@@ -55,7 +55,7 @@ public class ProductService {
     }
 
     public Page<ProductResponse> getPagedProducts(Pageable pageable) {
-        return productRepository.findAll(pageable).map(product -> new ProductResponse(product.getProductId(), product.getName(), product.getDescription(), product.getPrice(), product.getDiscount(), product.getStock(), product.getSize(), product.getColor(), product.isAvailable(), product.getRating(), product.getRatingCount(), product.getCommentCount(), product.getBrand(), product.getProductCode(), product.getImgProduct(), product.getCategory().getCategoryId(), product.getCategory().getName(), product.getCreatedAt(), product.getUpdatedAt()));
+        return productRepository.findAllByOrderByCreatedAtDesc(pageable).map(product -> new ProductResponse(product.getProductId(), product.getName(), product.getDescription(), product.getPrice(), product.getDiscount(), product.getStock(), product.getSize(), product.getColor(), product.isAvailable(), product.getRating(), product.getRatingCount(), product.getCommentCount(), product.getBrand(), product.getProductCode(), product.getImgProduct(), product.getCategory().getCategoryId(), product.getCategory().getName(), product.getCreatedAt(), product.getUpdatedAt()));
     }
 
     public List<ProductResponse> getListProductByCategory(Long categoryId) {

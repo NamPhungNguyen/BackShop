@@ -51,7 +51,6 @@ public class ProductController {
         return productService.getPagedProducts(pageable);
     }
 
-
     @DeleteMapping("/delete/{productId}")
     ApiResponse<Void> deleteProduct(@PathVariable("productId") Long id) {
         productService.deleteProduct(id);
