@@ -49,47 +49,121 @@ public class ProductService {
     }
 
     public List<ProductResponse> getListProduct() {
-        List<ProductResponse> products = productRepository.findAll().stream().map(productMapper::toProductResponse).toList();
-        products.forEach(p -> System.out.println("Product ID: " + p.getProductId() + ", Comment Count: " + p.getCommentCount()));
+        List<ProductResponse> products = productRepository.findByIsDeletedFalse().stream().map(productMapper::toProductResponse).collect(Collectors.toList());
+        products.forEach(p -> log.info("Product ID: " + p.getProductId() + ", Comment Count: " + p.getCommentCount()));
         return products;
     }
 
     public Page<ProductResponse> getPagedProducts(Pageable pageable) {
-        return productRepository.findAllByOrderByCreatedAtDesc(pageable).map(product -> new ProductResponse(product.getProductId(), product.getName(), product.getDescription(), product.getPrice(), product.getDiscount(), product.getStock(), product.getSize(), product.getColor(), product.isAvailable(), product.getRating(), product.getRatingCount(), product.getCommentCount(), product.getBrand(), product.getProductCode(), product.getImgProduct(), product.getCategory().getCategoryId(), product.getCategory().getName(), product.getCreatedAt(), product.getUpdatedAt()));
+        return productRepository.findAllByIsDeletedFalseOrderByCreatedAtDesc(pageable).map(product -> new ProductResponse(product.getProductId(), product.getName(), product.getDescription(), product.getPrice(), product.getDiscount(), product.getStock(), product.getSize(), product.getColor(), product.isAvailable(), product.getRating(), product.getRatingCount(), product.getCommentCount(), product.getBrand(), product.getProductCode(), product.getImgProduct(), product.getCategory().getCategoryId(), product.getCategory().getName(), product.getCreatedAt(), product.getUpdatedAt()));
     }
 
     public List<ProductResponse> getListProductByCategory(Long categoryId) {
-        Category category = categoryRepository.findByCategoryId(categoryId).orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_EXISTED));
+        // Check if the category exists
+        Category category = categoryRepository.findByCategoryId(categoryId)
+                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_EXISTED));
 
-        List<Product> products = productRepository.findByCategory(category);
+        // Fetch products by category and filter out deleted ones
+        List<Product> products = productRepository.findByCategoryAndIsDeletedFalse(category);
 
-        // Directly map Product to ProductResponse
-        return products.stream().map(product -> new ProductResponse(product.getProductId(), product.getName(), product.getDescription(), product.getPrice(), product.getDiscount(), product.getStock(), product.getSize(), product.getColor(), product.isAvailable(), product.getRating(), product.getRatingCount(), product.getCommentCount(), product.getBrand(), product.getProductCode(), product.getImgProduct(), product.getCategory().getCategoryId(), product.getCategory().getName(), product.getCreatedAt(), product.getUpdatedAt())).collect(Collectors.toList());
+        // Map the products to ProductResponse
+        return products.stream()
+                .map(product -> new ProductResponse(
+                        product.getProductId(),
+                        product.getName(),
+                        product.getDescription(),
+                        product.getPrice(),
+                        product.getDiscount(),
+                        product.getStock(),
+                        product.getSize(),
+                        product.getColor(),
+                        product.isAvailable(),
+                        product.getRating(),
+                        product.getRatingCount(),
+                        product.getCommentCount(),
+                        product.getBrand(),
+                        product.getProductCode(),
+                        product.getImgProduct(),
+                        product.getCategory().getCategoryId(),
+                        product.getCategory().getName(),
+                        product.getCreatedAt(),
+                        product.getUpdatedAt()
+                ))
+                .collect(Collectors.toList());
     }
 
     public List<ProductResponse> searchAndFilterProducts(ProductFilter filter, boolean sortByPriceAsc) {
-        // If no filter is provided, just return all products with price sorting
-        if (filter == null || filter.getName() == null) {
-            return productRepository.findAll(Sort.by(sortByPriceAsc ? Sort.Order.asc("price") : Sort.Order.desc("price"))).stream().map(product -> new ProductResponse(product.getProductId(), product.getName(), product.getDescription(), product.getPrice(), product.getDiscount(), product.getStock(), product.getSize(), product.getColor(), product.isAvailable(), product.getRating(), product.getRatingCount(), product.getCommentCount(), product.getBrand(), product.getProductCode(), product.getImgProduct(), product.getCategory().getCategoryId(), product.getCategory().getName(), product.getCreatedAt(), product.getUpdatedAt())).collect(Collectors.toList());
+        // Define sorting order
+        Sort sort = Sort.by(sortByPriceAsc ? Sort.Order.asc("price") : Sort.Order.desc("price"));
+
+        // Case 1: No filter provided
+        if (filter == null || (filter.getName() == null && filter.getPriceMin() == null && filter.getPriceMax() == null)) {
+            return productRepository.findByIsDeletedFalse(sort)
+                    .stream()
+                    .map(this::mapToProductResponse)
+                    .collect(Collectors.toList());
         }
 
-        // If filter has name and price range
+        // Case 2: Name and price range filter
         if (filter.getName() != null && filter.getPriceMin() != null && filter.getPriceMax() != null) {
-            return productRepository.findByNameContainingAndPriceBetween(filter.getName(), filter.getPriceMin(), filter.getPriceMax(), Sort.by(sortByPriceAsc ? Sort.Order.asc("price") : Sort.Order.desc("price"))).stream().map(product -> new ProductResponse(product.getProductId(), product.getName(), product.getDescription(), product.getPrice(), product.getDiscount(), product.getStock(), product.getSize(), product.getColor(), product.isAvailable(), product.getRating(), product.getRatingCount(), product.getCommentCount(), product.getBrand(), product.getProductCode(), product.getImgProduct(), product.getCategory().getCategoryId(), product.getCategory().getName(), product.getCreatedAt(), product.getUpdatedAt())).collect(Collectors.toList());
+            return productRepository.findByNameContainingAndPriceBetweenAndIsDeletedFalse(
+                            filter.getName(),
+                            filter.getPriceMin(),
+                            filter.getPriceMax(),
+                            sort)
+                    .stream()
+                    .map(this::mapToProductResponse)
+                    .collect(Collectors.toList());
         }
 
-        // If filter has only name
+        // Case 3: Name filter only
         if (filter.getName() != null) {
-            return productRepository.findByNameContaining(filter.getName(), Sort.by(sortByPriceAsc ? Sort.Order.asc("price") : Sort.Order.desc("price"))).stream().map(product -> new ProductResponse(product.getProductId(), product.getName(), product.getDescription(), product.getPrice(), product.getDiscount(), product.getStock(), product.getSize(), product.getColor(), product.isAvailable(), product.getRating(), product.getRatingCount(), product.getCommentCount(), product.getBrand(), product.getProductCode(), product.getImgProduct(), product.getCategory().getCategoryId(), product.getCategory().getName(), product.getCreatedAt(), product.getUpdatedAt())).collect(Collectors.toList());
+            return productRepository.findByNameContainingAndIsDeletedFalse(filter.getName(), sort)
+                    .stream()
+                    .map(this::mapToProductResponse)
+                    .collect(Collectors.toList());
         }
 
-        // If filter has only price range
+        // Case 4: Price range filter only
         if (filter.getPriceMin() != null && filter.getPriceMax() != null) {
-            return productRepository.findByPriceBetween(filter.getPriceMin(), filter.getPriceMax(), Sort.by(sortByPriceAsc ? Sort.Order.asc("price") : Sort.Order.desc("price"))).stream().map(product -> new ProductResponse(product.getProductId(), product.getName(), product.getDescription(), product.getPrice(), product.getDiscount(), product.getStock(), product.getSize(), product.getColor(), product.isAvailable(), product.getRating(), product.getRatingCount(), product.getCommentCount(), product.getBrand(), product.getProductCode(), product.getImgProduct(), product.getCategory().getCategoryId(), product.getCategory().getName(), product.getCreatedAt(), product.getUpdatedAt())).collect(Collectors.toList());
+            return productRepository.findByPriceBetweenAndIsDeletedFalse(
+                            filter.getPriceMin(),
+                            filter.getPriceMax(),
+                            sort)
+                    .stream()
+                    .map(this::mapToProductResponse)
+                    .collect(Collectors.toList());
         }
 
-        // Default: return all products sorted by price
-        return productRepository.findAll(Sort.by(sortByPriceAsc ? Sort.Order.asc("price") : Sort.Order.desc("price"))).stream().map(product -> new ProductResponse(product.getProductId(), product.getName(), product.getDescription(), product.getPrice(), product.getDiscount(), product.getStock(), product.getSize(), product.getColor(), product.isAvailable(), product.getRating(), product.getRatingCount(), product.getCommentCount(), product.getBrand(), product.getProductCode(), product.getImgProduct(), product.getCategory().getCategoryId(), product.getCategory().getName(), product.getCreatedAt(), product.getUpdatedAt())).collect(Collectors.toList());
+        // Default: Return all products sorted by price
+        return productRepository.findByIsDeletedFalse(sort)
+                .stream()
+                .map(this::mapToProductResponse)
+                .collect(Collectors.toList());
+    }
+
+    private ProductResponse mapToProductResponse(Product product) {
+        return new ProductResponse(
+                product.getProductId(),
+                product.getName(),
+                product.getDescription(),
+                product.getPrice(),
+                product.getDiscount(),
+                product.getStock(),
+                product.getSize(),
+                product.getColor(),
+                product.isAvailable(),
+                product.getRating(),
+                product.getRatingCount(),
+                product.getCommentCount(),
+                product.getBrand(),
+                product.getProductCode(),
+                product.getImgProduct(),
+                product.getCategory().getCategoryId(),
+                product.getCategory().getName(),
+                product.getCreatedAt(),
+                product.getUpdatedAt()
+        );
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -152,6 +226,8 @@ public class ProductService {
 
     @PreAuthorize("hasRole('ADMIN')")
     public void deleteProduct(Long id) {
-        productRepository.deleteById(id);
+        Product product = productRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_EXISTED));
+        product.setDeleted(true);
+        productRepository.save(product);
     }
 }

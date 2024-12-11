@@ -17,14 +17,18 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     Optional<Product> findByProductId(Long id);
 
-    List<Product> findByCategory(Category category);
+    List<Product> findByCategoryAndIsDeletedFalse(Category category);
 
-    Page<Product> findAllByOrderByCreatedAtDesc(Pageable pageable);
+    List<Product> findByIsDeletedFalse();
 
-    List<Product> findByNameContaining(String name, Sort by);
+    Page<Product> findAllByIsDeletedFalseOrderByCreatedAtDesc(Pageable pageable);
 
-    List<Product> findByPriceBetween(Double priceMin, Double priceMax, Sort by);
+    List<Product> findByIsDeletedFalse(Sort sort);
 
-    List<Product> findByNameContainingAndPriceBetween(String name, Double priceMin, Double priceMax, Sort sort);
+    List<Product> findByNameContainingAndIsDeletedFalse(String name, Sort sort);
+
+    List<Product> findByPriceBetweenAndIsDeletedFalse(Double priceMin, Double priceMax, Sort sort);
+
+    List<Product> findByNameContainingAndPriceBetweenAndIsDeletedFalse(String name, Double priceMin, Double priceMax, Sort sort);
 
 }
