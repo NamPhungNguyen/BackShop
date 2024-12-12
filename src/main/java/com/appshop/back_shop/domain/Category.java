@@ -29,6 +29,9 @@ public class Category {
 
     String image;
 
+    @Column(nullable = false)
+    boolean isDeleted = false;
+
     @CreationTimestamp
     @Column(nullable = false)
     LocalDateTime createdAt;

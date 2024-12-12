@@ -29,7 +29,7 @@ public class Product {
     @Column(nullable = false)
     String name;
 
-    @Column(length = 500)
+    @Column(columnDefinition = "TEXT")
     String description;
 
     @Column(nullable = false)

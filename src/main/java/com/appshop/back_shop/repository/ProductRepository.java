@@ -31,4 +31,5 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     List<Product> findByNameContainingAndPriceBetweenAndIsDeletedFalse(String name, Double priceMin, Double priceMax, Sort sort);
 
+    List<Product> findByCategory_CategoryId(Long categoryId);
 }

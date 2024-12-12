@@ -43,6 +43,7 @@ public class OrderService {
     ShippingAddressRepository shippingAddressRepository;
     PaymentRepository paymentRepository;
     CartRepository cartRepository;
+    ProductRepository productRepository;
 
     public Long getUserIdFromToken() {
         JwtAuthenticationToken authenticationToken = (JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
@@ -84,8 +85,27 @@ public class OrderService {
                 BigDecimal discountPrice = cartItem.getProduct().getPrice().multiply(BigDecimal.valueOf(1 - cartItem.getProduct().getDiscount().doubleValue() / 100));
                 BigDecimal price = discountPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
 
-                OrderItem orderItem = OrderItem.builder().order(savedOrder).product(cartItem.getProduct()).quantity(cartItem.getQuantity()).price(price).size(cartItem.getSize()).color(cartItem.getColor()).build();
+                Product product = cartItem.getProduct();
+                int quantityOrdered = cartItem.getQuantity();
 
+                // Log stock before update
+                System.out.println("Before update: Product - " + product.getName() + ", Stock - " + product.getStock());
+
+                // Kiểm tra số lượng tồn kho
+                if (product.getStock() < quantityOrdered) {
+                    throw new RuntimeException("Not enough stock for product: " + product.getName());
+                }
+
+                // Trừ số lượng tồn kho
+                product.setStock(product.getStock() - quantityOrdered);
+
+                // Log stock after update
+                System.out.println("After update: Product - " + product.getName() + ", Stock - " + product.getStock());
+
+                // Lưu lại sản phẩm với số lượng tồn kho mới
+                productRepository.save(product);
+
+                OrderItem orderItem = OrderItem.builder().order(savedOrder).product(cartItem.getProduct()).quantity(cartItem.getQuantity()).price(price).size(cartItem.getSize()).color(cartItem.getColor()).build();
                 orderItemRepository.save(orderItem);
 
                 cartItem.setPurchased(true);
@@ -94,9 +114,7 @@ public class OrderService {
             });
 
             Payment payment = Payment.builder().order(savedOrder).amount(totalAfterDiscount).paymentMethod(resolvedPaymentMethod).paymentStatus(resolvedPaymentMethod.equals("transfer") ? "awaiting_transfer" : "pending").createdAt(LocalDateTime.now()).build();
-
             paymentRepository.save(payment);
-
             clearCartAfterOrder(userId);
 
             List<CartItemResponse> cartItemResponses = selectedItems.stream().map(cartItem -> {
@@ -214,14 +232,12 @@ public class OrderService {
     }
 
     public List<MonthlyRevenue> getMonthlyRevenue() {
-        // Truy vấn dữ liệu từ cơ sở dữ liệu
         List<Object[]> results = orderRepository.calculateMonthlyRevenue();
 
         // Tạo danh sách với 12 tháng gần nhất
         List<MonthlyRevenue> monthlyRevenueList = new ArrayList<>();
         LocalDate now = LocalDate.now();
 
-        // Map dữ liệu từ DB về cấu trúc doanh thu theo tháng
         Map<String, Double> revenueMap = new HashMap<>();
         for (Object[] result : results) {
             int month = (Integer) result[0];
@@ -235,11 +251,7 @@ public class OrderService {
             String key = monthYear.getYear() + "-" + monthYear.getMonthValue();
             double revenue = revenueMap.getOrDefault(key, 0.0);
 
-            monthlyRevenueList.add(new MonthlyRevenue(
-                    monthYear.getMonthValue(),
-                    monthYear.getYear(),
-                    revenue
-            ));
+            monthlyRevenueList.add(new MonthlyRevenue(monthYear.getMonthValue(), monthYear.getYear(), revenue));
         }
 
         Collections.reverse(monthlyRevenueList);
